@@ -1,6 +1,6 @@
 # Especificação 001 — MVP do treinador de trail braking
 
-**Status:** Em revisão  
+**Status:** Aprovada  
 **Fase SDD:** Especificação  
 **Plataforma inicial:** Windows  
 **Dispositivo inicial:** Logitech G29 com pedais  
@@ -254,4 +254,3 @@ A especificação estará aprovada para seguir ao planejamento técnico quando:
 - Requisitos funcionais prioritários não apresentarem ambiguidades bloqueantes.
 - Decisões em aberto necessárias para arquitetura forem resolvidas ou explicitamente adiadas.
 - Critérios de aceitação forem considerados verificáveis.
-
