@@ -1,6 +1,6 @@
 # Plano técnico — MVP do treinador de trail braking
 
-**Status:** Em revisão  
+**Status:** Aprovado  
 **Spec relacionada:** [spec.md](spec.md)  
 **Pesquisa relacionada:** [research.md](research.md)  
 
@@ -155,6 +155,21 @@ Responsabilidades:
 - A pontuação é calculada somente após o encerramento da tentativa.
 
 Nenhuma métrica dependerá da taxa de quadros da interface.
+
+### 5.4 Artefato do hardware spike
+
+O primeiro build será um executável independente para Windows com interface de diagnóstico. Ele deverá:
+
+- listar os dispositivos reconhecidos pelo SDL;
+- exibir em tempo real todos os eixos, botões e hats;
+- adquirir amostras brutas com alvo de 120 Hz;
+- permitir que o usuário escolha pasta e nome do arquivo antes de gravar;
+- salvar a captura em JSONL para preservar linhas já escritas mesmo após uma interrupção;
+- registrar metadados, amostras, eventos e resumo final;
+- exibir o caminho escolhido e a frequência observada;
+- encerrar a gravação de forma segura ao parar ou fechar o aplicativo.
+
+O arquivo de diagnóstico poderá ser versionado manualmente no repositório pelo usuário. Ele não deverá conter credenciais, nome de usuário do Windows ou o caminho completo em seu próprio conteúdo.
 
 ## 6. Calibração e normalização
 
