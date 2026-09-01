@@ -10,6 +10,6 @@ O projeto está sendo desenvolvido com uma abordagem de Spec-Driven Development 
 
 ## Estado atual
 
-`Especificação em revisão`
+`Planejamento técnico em revisão`
 
 Ainda não há código de aplicação no repositório.
