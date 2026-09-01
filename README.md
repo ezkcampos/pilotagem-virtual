@@ -10,6 +10,17 @@ O projeto está sendo desenvolvido com uma abordagem de Spec-Driven Development 
 
 ## Estado atual
 
-`Planejamento técnico em revisão`
+`Build 0 — coletor de diagnóstico do G29`
 
-Ainda não há código de aplicação no repositório.
+O primeiro build é um coletor de dados brutos do volante e dos pedais. Ele permite escolher onde salvar uma captura `.jsonl`, que será usada para validar o mapeamento e o comportamento real do G29 antes do desenvolvimento da calibração definitiva.
+
+## Executável de diagnóstico
+
+O executável para Windows é produzido pelo workflow **Build G29 Hardware Spike** no GitHub Actions.
+
+1. Abra a aba **Actions** do repositório.
+2. Entre na execução mais recente de **Build G29 Hardware Spike**.
+3. Baixe o artefato `PilotagemVirtual-G29-Spike-windows-x64`.
+4. Extraia o `.zip` e execute `PilotagemVirtual-G29-Spike.exe`.
+
+Ao iniciar uma gravação, o aplicativo abre uma janela para escolher a pasta e o nome do arquivo JSONL.
