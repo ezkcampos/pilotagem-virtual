@@ -1,0 +1,61 @@
+name: Build G29 Hardware Spike
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "spike_main.py"
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/build-g29-spike.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install ".[dev,build]"
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Build Windows executable
+        run: >-
+          python -m PyInstaller
+          --noconfirm
+          --clean
+          --windowed
+          --onedir
+          --name PilotagemVirtual-G29-Spike
+          --paths src
+          spike_main.py
+
+      - name: Create distributable archive
+        shell: pwsh
+        run: >-
+          Compress-Archive
+          -Path dist/PilotagemVirtual-G29-Spike/*
+          -DestinationPath PilotagemVirtual-G29-Spike-windows-x64.zip
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PilotagemVirtual-G29-Spike-windows-x64
+          path: PilotagemVirtual-G29-Spike-windows-x64.zip
+          retention-days: 14
+          if-no-files-found: error
