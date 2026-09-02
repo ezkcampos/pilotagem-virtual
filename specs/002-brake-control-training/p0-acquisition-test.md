@@ -18,8 +18,7 @@ diagnóstico antes de iniciar cada medição.
    ainda completa, cancela e repete com volante, acelerador, freio e embreagem.
 
 Envie os quatro JSONs completos e relate Windows, CPU/RAM, versão do Logitech G
-Hub, escala da tela e qualquer travamento. Os valores de eixos pertencem ao teste
-local e devem ser tratados como captura do usuário; não publicá-los em issue.
+Hub, escala da tela e qualquer travamento.
 
 ## Critério para decidir a arquitetura
 

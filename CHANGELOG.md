@@ -21,18 +21,21 @@ na série inicial `0.x`.
   caminho normal do treinador até validação física.
 - CI Windows para testes na branch de desenvolvimento e identidade do commit
   nos relatórios dos builds manuais do treinador.
+- Builds Windows de desenvolvimento P0 para treinador e diagnóstico (commit
+  1cb48e8), com [evidências e roteiro de teste](specs/002-brake-control-training/p0-evidence.md).
 
 - Spec 002 de fundamentos do freio e telemetria visual, com alvo na versão 0.2.0.
 - Registro da aprovação do quality gate da Spec 002 em 2026-09-02, com sete decisões
   adiadas explicitamente para experimentação no Plan.
-- Plano técnico da Spec 002 em revisão, com arquitetura, hipóteses, incrementos,
+- Plano técnico da Spec 002, aprovado após revisão, com arquitetura, hipóteses, incrementos,
   rastreabilidade e builds Windows pelo GitHub Actions.
 
 ### Alterado
 
 - Revisão preparatória do Plan 002 contra o código: restrições de SDL/Qt,
   timestamps e fronteiras ainda por validar, integridade dos dados, métricas,
-  compatibilidade legada e dependências dos incrementos. Gate do Plan pendente.
+  compatibilidade legada e dependências dos incrementos. Gate do Plan aprovado;
+  validações experimentais permanecem pendentes conforme Tasks.
 - Pontuação da família de sustentação prevista já em P2, com pesos e escalas
   sujeitos aos experimentos; persistência de snapshots para reprocessamento.
 

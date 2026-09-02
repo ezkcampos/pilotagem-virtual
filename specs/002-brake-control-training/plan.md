@@ -22,8 +22,10 @@ de hardware, aprovação das hipóteses abaixo ou gate de release.
 
 Este plano define arquitetura, contratos, hipóteses, sequência e validação.
 Seguindo o fluxo da Spec 001, a decomposição em tasks.md acontece depois do
-quality gate deste plano. Não há implementação funcional ou build novo concluído
-nesta fase. O merge na main continua pendente de autorização explícita.
+quality gate deste plano. Na revisão preparatória ainda não havia implementação
+funcional ou build novo. Após a aprovação, o estado dos incrementos e suas
+evidências é registrado em [tasks.md](tasks.md). O merge na main continua
+pendente de autorização explícita.
 
 ## 2. Estado real do código
 

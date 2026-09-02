@@ -4,26 +4,39 @@ Treinador modular de técnicas de pilotagem para volante e pedais, começando po
 
 **Versão atual:** `0.1.0`
 
-O projeto está sendo desenvolvido com uma abordagem de Spec-Driven Development (SDD). A especificação e o plano técnico foram aprovados, o hardware spike do G29 foi validado e o núcleo do MVP está em construção.
+O projeto segue Spec-Driven Development (SDD). A versão estável é a 0.1.0;
+a Spec 002 e seu plano foram aprovados e P0 está em desenvolvimento na branch
+`feature/002-brake-control`. A aquisição nova ainda depende de validação física.
 
 ## Especificações
 
 - [MVP — Treinador de trail braking](specs/001-trail-braking-mvp/spec.md)
+- [Spec 002 — Fundamentos do freio](specs/002-brake-control-training/spec.md)
+- [Tarefas da Spec 002](specs/002-brake-control-training/tasks.md)
 - [Changelog](CHANGELOG.md)
 - [Fluxo de contribuição e releases](CONTRIBUTING.md)
 
 ## Estado atual
 
-`Build 1 — primeira fatia vertical do treinador`
+`P0 da Spec 002 — base de aquisição e medição; treino legado preservado`
 
 O treinador principal e o diagnóstico são aplicativos separados:
 
 - `PilotagemVirtual.exe`: treinador com mapa, cenário, contagem regressiva e captura normalizada.
 - `PilotagemVirtual-G29-Spike.exe`: ferramenta permanente de diagnóstico e exportação JSONL bruto.
 
-O Build 1 do treinador usa o perfil observado na captura real do G29. A calibração personalizada, a pontuação e o histórico serão adicionados nos próximos incrementos.
+O treinador usa o perfil observado na captura real do G29. Calibração personalizada,
+pontuação, gráfico de treino e novos níveis serão adicionados após P0. Histórico
+completo e comparação entre sessões permanecem no backlog, fora da 0.2.0.
 
 ## Executável do treinador
+
+Na branch `feature/002-brake-control`, P0 já possui proteção de timestamps,
+snapshots por tentativa e um modo experimental de medição. O pacote de
+desenvolvimento inclui `run-p0-acquisition-probe.bat`; o treino normal continua
+em `PilotagemVirtual.exe`. A escolha da arquitetura de aquisição ainda depende
+de teste físico. Consulte as [evidências P0](specs/002-brake-control-training/p0-evidence.md)
+e o [roteiro G29](specs/002-brake-control-training/p0-acquisition-test.md).
 
 O executável principal é produzido pelo workflow **Build Pilotagem Virtual Trainer**.
 

@@ -1,0 +1,266 @@
+[
+  {
+    "schema_version": "acquisition-probe-v1",
+    "app_version": "0.1.0",
+    "kind": "development-P0",
+    "config": {
+      "source": "fake",
+      "context": "main",
+      "duration_seconds": 10.0,
+      "drawing": false,
+      "device_id": null
+    },
+    "reason": "completed",
+    "error": null,
+    "metadata": {
+      "owner_thread": 30192,
+      "source": "fake",
+      "requested_interval_ms": 8,
+      "target_hz": 120
+    },
+    "origin_ns": 41260222659400,
+    "finished_ns": 41270227044200,
+    "duration_ns": 10000000000,
+    "acquisition": {
+      "sample_count": 1197,
+      "observed_hz": 119.7,
+      "per_second": [
+        119,
+        120,
+        120,
+        120,
+        121,
+        120,
+        120,
+        118,
+        119,
+        120
+      ],
+      "interval_p50_ms": 8.09365,
+      "interval_p95_ms": 9.023775,
+      "interval_p99_ms": 9.149495,
+      "max_interval_ms": 9.4034,
+      "leading_gap_ms": 0.1438,
+      "trailing_gap_ms": 3.6342,
+      "issues": [],
+      "policy_version": "acquisition-candidate-v1"
+    },
+    "runtime": {
+      "python": "3.12.4",
+      "platform": "Windows-11-10.0.26200-SP0"
+    },
+    "ui": {
+      "width": 1920,
+      "height": 1080,
+      "device_pixel_ratio": 1.0,
+      "qt_platform": "offscreen",
+      "drawn_frames": 0,
+      "drawn_fps": 0.0,
+      "delivery_p95_ms": 0.0466,
+      "paint_p95_ms": 1.8497,
+      "resize_events": [],
+      "main_thread": 30192
+    },
+    "build": {
+      "commit": null
+    }
+  },
+  {
+    "schema_version": "acquisition-probe-v1",
+    "app_version": "0.1.0",
+    "kind": "development-P0",
+    "config": {
+      "source": "fake",
+      "context": "main",
+      "duration_seconds": 10.0,
+      "drawing": true,
+      "device_id": null
+    },
+    "reason": "completed",
+    "error": null,
+    "metadata": {
+      "owner_thread": 30192,
+      "source": "fake",
+      "requested_interval_ms": 8,
+      "target_hz": 120
+    },
+    "origin_ns": 41270393054200,
+    "finished_ns": 41280397767600,
+    "duration_ns": 10000000000,
+    "acquisition": {
+      "sample_count": 1175,
+      "observed_hz": 117.5,
+      "per_second": [
+        118,
+        118,
+        118,
+        117,
+        118,
+        118,
+        117,
+        118,
+        116,
+        117
+      ],
+      "interval_p50_ms": 8.42735,
+      "interval_p95_ms": 9.69781,
+      "interval_p99_ms": 10.202494,
+      "max_interval_ms": 15.5762,
+      "leading_gap_ms": 0.1458,
+      "trailing_gap_ms": 3.0367,
+      "issues": [],
+      "policy_version": "acquisition-candidate-v1"
+    },
+    "runtime": {
+      "python": "3.12.4",
+      "platform": "Windows-11-10.0.26200-SP0"
+    },
+    "ui": {
+      "width": 1920,
+      "height": 1080,
+      "device_pixel_ratio": 1.0,
+      "qt_platform": "offscreen",
+      "drawn_frames": 588,
+      "drawn_fps": 58.8,
+      "delivery_p95_ms": 0.024085000000000002,
+      "paint_p95_ms": 7.47084,
+      "resize_events": [],
+      "main_thread": 30192
+    },
+    "build": {
+      "commit": null
+    }
+  },
+  {
+    "schema_version": "acquisition-probe-v1",
+    "app_version": "0.1.0",
+    "kind": "development-P0",
+    "config": {
+      "source": "fake",
+      "context": "worker",
+      "duration_seconds": 10.0,
+      "drawing": false,
+      "device_id": null
+    },
+    "reason": "completed",
+    "error": null,
+    "metadata": {
+      "owner_thread": 26408,
+      "source": "fake",
+      "requested_interval_ms": 8,
+      "target_hz": 120
+    },
+    "origin_ns": 41280492693100,
+    "finished_ns": 41290495212500,
+    "duration_ns": 10000000000,
+    "acquisition": {
+      "sample_count": 1192,
+      "observed_hz": 119.2,
+      "per_second": [
+        122,
+        120,
+        119,
+        120,
+        117,
+        116,
+        119,
+        118,
+        120,
+        121
+      ],
+      "interval_p50_ms": 8.1299,
+      "interval_p95_ms": 9.02005,
+      "interval_p99_ms": 9.11094,
+      "max_interval_ms": 9.3061,
+      "leading_gap_ms": 0.104,
+      "trailing_gap_ms": 6.4265,
+      "issues": [],
+      "policy_version": "acquisition-candidate-v1"
+    },
+    "runtime": {
+      "python": "3.12.4",
+      "platform": "Windows-11-10.0.26200-SP0"
+    },
+    "ui": {
+      "width": 1920,
+      "height": 1080,
+      "device_pixel_ratio": 1.0,
+      "qt_platform": "offscreen",
+      "drawn_frames": 1,
+      "drawn_fps": 0.1,
+      "delivery_p95_ms": 0.11743999999999999,
+      "paint_p95_ms": 0.4243,
+      "resize_events": [],
+      "main_thread": 30192
+    },
+    "build": {
+      "commit": null
+    }
+  },
+  {
+    "schema_version": "acquisition-probe-v1",
+    "app_version": "0.1.0",
+    "kind": "development-P0",
+    "config": {
+      "source": "fake",
+      "context": "worker",
+      "duration_seconds": 10.0,
+      "drawing": true,
+      "device_id": null
+    },
+    "reason": "completed",
+    "error": null,
+    "metadata": {
+      "owner_thread": 31812,
+      "source": "fake",
+      "requested_interval_ms": 8,
+      "target_hz": 120
+    },
+    "origin_ns": 41290574295600,
+    "finished_ns": 41300577675700,
+    "duration_ns": 10000000000,
+    "acquisition": {
+      "sample_count": 1135,
+      "observed_hz": 113.5,
+      "per_second": [
+        118,
+        117,
+        118,
+        117,
+        118,
+        118,
+        116,
+        113,
+        112,
+        88
+      ],
+      "interval_p50_ms": 8.5384,
+      "interval_p95_ms": 10.200249999999999,
+      "interval_p99_ms": 16.779343,
+      "max_interval_ms": 17.3237,
+      "leading_gap_ms": 0.1017,
+      "trailing_gap_ms": 13.248,
+      "issues": [],
+      "policy_version": "acquisition-candidate-v1"
+    },
+    "runtime": {
+      "python": "3.12.4",
+      "platform": "Windows-11-10.0.26200-SP0"
+    },
+    "ui": {
+      "width": 2560,
+      "height": 1080,
+      "device_pixel_ratio": 1.0,
+      "qt_platform": "offscreen",
+      "drawn_frames": 589,
+      "drawn_fps": 58.9,
+      "delivery_p95_ms": 0.12741999999999987,
+      "paint_p95_ms": 8.72554,
+      "resize_events": [],
+      "main_thread": 30192
+    },
+    "build": {
+      "commit": null
+    }
+  }
+]

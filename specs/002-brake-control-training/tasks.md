@@ -22,8 +22,8 @@
 | [x] T010 | Contratos e dispositivo falso | T000 | RF2-012, RNF2-002: relógio injetável, encerramento explícito, exaustão sem duplicar a última leitura. |
 | [x] T011 | Integridade e snapshot da sessão | T010 | RF2-012/025, CA2-008: timestamps crescentes, identidade nova, fronteira final real, cancelamento com motivo, snapshot imutável; repetir 30 vezes sem resíduo. |
 | [x] T012 | Coordenador e proteção do legado | T011 | RF2-012, seção 4: quatro eixos, contagem e mapa preservados; UI recebe estado, timestamp vem do dispositivo; seleção bloqueada durante execução; desconexão visível. |
-| [ ] T013 | Instrumentação de aquisição | T010/T011 | RNF2-002/003/004: frequência por segundo, percentis, lacunas, atraso de entrega e quadros desenhados; séries irregulares e vazias testadas. |
-| [ ] T014 | Experimento SDL/Qt reproduzível | T010/T013 | RNF2-002/003: thread principal e worker isolados, backend inicializado/fechado no contexto proprietário, entrada falsa e real, carga visual, relatório e testes de encerramento. |
+| [x] T013 | Instrumentação de aquisição | T010/T011 | RNF2-002/003/004: frequência por segundo, percentis, lacunas, atraso de entrega e quadros desenhados; séries irregulares e vazias testadas. |
+| [x] T014 | Experimento SDL/Qt reproduzível | T010/T013 | RNF2-002/003: thread principal e worker isolados, backend inicializado/fechado no contexto proprietário, entrada falsa e real, carga visual, relatório e testes de encerramento. |
 | [ ] T015 | Experimento de fronteiras de janela | T011 | RF2-026, CA2-002: comparar interpolação com/sem amostras externas, timestamps deslocados e lacunas; registrar decisão ou mudança de requisito ainda necessária antes de P2. |
 | [ ] T016 [HW] | Validar aquisição e escolher arquitetura | T012/T014, builds Windows | G29: 10 s sem/com desenho, redimensionar, cancelar, desconectar/reconectar e fechar; registrar PC, driver, SHA, taxas/lacunas e decisão. Não presumir que 8 ms comprova 120 Hz. |
 
@@ -81,7 +81,7 @@
 
 | Estado / ID | Entrega | Dependências | Requisitos / conclusão verificável |
 |---|---|---|---|
-| [ ] T080 | CI de testes e builds independentes | T000; executada também nos incrementos | Dois workflows Windows; branch/SHA explícitos, testes e artefatos; nenhum build local substitui Actions. |
+| [x] T080 | CI de testes e builds independentes | T000; executada também nos incrementos | Dois workflows Windows; branch/SHA explícitos, testes e artefatos; nenhum build local substitui Actions. |
 | [ ] T081 | Regressão integrada e desempenho | P0–P6 | RF2-001–033, RNF2-001–009, CA2-001–008: testes de domínio/UI/falha, offline, resoluções, 30 repetições, latência ≤500 ms e aquisição ≥60 Hz. |
 | [ ] T082 [HW] | Executáveis e G29 no PC de referência | T080/T081 | Executar pacotes Actions, reinício/perfil, cancelamento/desconexão/reconexão, 30 repetições e diagnóstico; registrar evidência e limitações. |
 | [ ] T083 | Gate da 0.2.0 e preparação da release | T082 e autorização explícita | Conferir critérios, autorizar merge, testar main, sincronizar versões/changelog; tag/release somente com autorização correspondente. |
@@ -95,3 +95,10 @@
 - P0 / T010–T012: 48 testes passaram localmente (Python 3.12.4), incluindo
   regressão Qt com fonte falsa em 1920×1080 e 2560×1080; aquisição real e
   confirmação visual/manual permanecem no gate T016.
+
+- P0 / T013–T014: 54 testes aprovados, incluindo 30 ciclos do worker.
+  Medições exploratórias, limites e contraexemplo de fronteiras em [p0-evidence.md](p0-evidence.md).
+  T015 e T016 continuam abertas; não há aprovação de aquisição real.
+
+- T080: dois builds Windows de 1cb48e8 concluídos; pacote do treinador executado
+  com fonte falsa, SHA conferido no relatório. Artefatos e limitações em [p0-evidence.md](p0-evidence.md).
