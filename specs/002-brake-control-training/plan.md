@@ -1,6 +1,6 @@
 # Plano técnico 002 — Fundamentos do freio e telemetria visual
 
-**Status:** Em revisão
+**Status:** Aprovado para Tasks e implementação incremental
 **Fase SDD:** Plan
 **Versão-alvo:** 0.2.0
 **Data:** 2026-09-02
@@ -516,13 +516,14 @@ Pronto para revisão quando:
 - riscos pendentes não forem apresentados como resolvidos;
 - responsável aceitar o plano para decomposição em Tasks.
 
-**Situação:** plano reauditado, ainda Em revisão e sem aprovação deste gate.
-As hipóteses E01–E07 e as decisões técnicas de aquisição/fronteiras têm pontos de
-validação definidos; não são parâmetros finais aprovados. Nenhum experimento
-de aquisição, teste novo, benchmark ou build novo foi executado. A suíte existente
-foi executada conforme o registro abaixo.
-**Próxima transição:** aprovação do Plan → tasks.md → implementação incremental
-e validação, mantendo merge pendente de autorização explícita.
+**Situação:** gate aprovado em 2026-09-02, após revisão do commit 0bbf068.
+O responsável respondeu “bora, pode seguir” ao pedido de aprovação do Plan para
+criar tasks.md e iniciar P0. A autorização inclui decomposição e implementação
+incremental; E01–E07 continuam sujeitas aos experimentos registrados. Não autoriza
+merge, tag ou release, nem representa validação física do G29.
+**Próxima transição:** [Tasks](tasks.md) → P0 e validação da aquisição antes de
+consolidar a arquitetura. O registro da revisão abaixo é histórico; evidências
+posteriores ficam nas tarefas e nos relatórios de cada incremento.
 
 ## 14. Registro da revisão preparatória — 2026-09-02
 

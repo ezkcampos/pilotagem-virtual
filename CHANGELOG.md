@@ -10,6 +10,9 @@ na série inicial `0.x`.
 
 ### Adicionado
 
+- Aprovação do Plan 002 e decomposição em Tasks em 2026-09-02; P0 autorizado,
+  mantendo hipóteses experimentais e gates de hardware/merge/release separados.
+
 - Spec 002 de fundamentos do freio e telemetria visual, com alvo na versão 0.2.0.
 - Registro da aprovação do quality gate da Spec 002 em 2026-09-02, com sete decisões
   adiadas explicitamente para experimentação no Plan.
