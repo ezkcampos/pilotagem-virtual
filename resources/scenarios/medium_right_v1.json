@@ -1,0 +1,27 @@
+{
+  "id": "medium-right-v1",
+  "version": 1,
+  "name": "Curva média à direita",
+  "description": "Freie forte na reta, inicie o esterço e alivie progressivamente o freio até o ápice.",
+  "difficulty": "Iniciante",
+  "direction": "right",
+  "duration_seconds": 8.0,
+  "geometry": [
+    [0.06, 0.78],
+    [0.25, 0.78],
+    [0.43, 0.78],
+    [0.56, 0.73],
+    [0.67, 0.62],
+    [0.73, 0.47],
+    [0.73, 0.30],
+    [0.67, 0.13]
+  ],
+  "markers": [
+    {"key": "start", "label": "INÍCIO", "progress": 0.00},
+    {"key": "braking", "label": "FREAR", "progress": 0.20},
+    {"key": "turn_in", "label": "TURN-IN", "progress": 0.42},
+    {"key": "trail_braking", "label": "TRAIL", "progress": 0.52},
+    {"key": "apex", "label": "ÁPICE", "progress": 0.70},
+    {"key": "acceleration", "label": "ACELERAR", "progress": 0.84}
+  ]
+}

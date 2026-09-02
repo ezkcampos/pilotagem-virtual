@@ -27,6 +27,17 @@ Este documento define decisões e fronteiras técnicas. A decomposição em tare
 | Empacotamento | PyInstaller `onedir` |
 | Conectividade | Aplicativo offline |
 
+## 2.1 Versionamento e entrega
+
+O projeto usa Versionamento Semântico durante a série inicial `0.x`. A `main`
+representa o estado integrado e cada incremento posterior à importação da `0.1.0`
+será desenvolvido em uma branch curta vinculada à Spec e às tarefas correspondentes.
+
+O histórico de mudanças é mantido em `CHANGELOG.md`. Uma tag `vX.Y.Z` só será criada
+após o gate da versão. O push da tag executa testes, confirma que a tag corresponde à
+versão declarada no pacote, empacota o treinador e o diagnóstico para Windows x64 e
+publica os dois arquivos na GitHub Release.
+
 As versões exatas das dependências serão fixadas após o hardware spike, usando versões que possuam distribuição compatível com Python 3.12 e Windows 64 bits.
 
 ## 3. Arquitetura proposta
@@ -170,6 +181,11 @@ O primeiro build será um executável independente para Windows com interface de
 - encerrar a gravação de forma segura ao parar ou fechar o aplicativo.
 
 O arquivo de diagnóstico poderá ser versionado manualmente no repositório pelo usuário. Ele não deverá conter credenciais, nome de usuário do Windows ou o caminho completo em seu próprio conteúdo.
+
+O diagnóstico permanecerá como aplicativo independente após o spike. Ele continuará
+disponível para investigar mudanças de driver, novos dispositivos, problemas de eixos e
+capturas solicitadas durante o desenvolvimento. O treinador principal será empacotado
+separadamente e compartilhará somente as camadas de dispositivo e normalização.
 
 ## 6. Calibração e normalização
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pilotagem-virtual"
-version = "0.0.1"
+version = "0.1.0"
 description = "Treinador modular de técnicas de pilotagem virtual"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
@@ -18,6 +18,7 @@ dev = ["pytest>=9.0,<10"]
 build = ["pyinstaller==6.22.2"]
 
 [project.scripts]
+pilotagem-virtual = "pilotagem_virtual.trainer_app:main"
 pilotagem-virtual-g29-spike = "pilotagem_virtual.hardware_spike:main"
 
 [tool.setuptools]

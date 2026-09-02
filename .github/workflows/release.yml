@@ -1,0 +1,92 @@
+name: Release Pilotagem Virtual
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  test-build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install ".[dev,build]"
+
+      - name: Verify tag and package versions
+        shell: pwsh
+        run: |
+          $tagVersion = "${{ github.ref_name }}".TrimStart("v")
+          $projectVersion = python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
+          $packageVersion = python -c "import sys; sys.path.insert(0, 'src'); import pilotagem_virtual; print(pilotagem_virtual.__version__)"
+
+          if ($tagVersion -ne $projectVersion) {
+            throw "Tag $tagVersion differs from pyproject.toml $projectVersion"
+          }
+
+          if ($tagVersion -ne $packageVersion) {
+            throw "Tag $tagVersion differs from package $packageVersion"
+          }
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Build trainer
+        run: >-
+          python -m PyInstaller
+          --noconfirm
+          --clean
+          --windowed
+          --onedir
+          --name PilotagemVirtual
+          --paths src
+          --add-data "resources;resources"
+          trainer_main.py
+
+      - name: Build G29 diagnostic
+        run: >-
+          python -m PyInstaller
+          --noconfirm
+          --clean
+          --windowed
+          --onedir
+          --name PilotagemVirtual-G29-Spike
+          --paths src
+          spike_main.py
+
+      - name: Create release archives
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          Compress-Archive -Path dist/PilotagemVirtual/* -DestinationPath "PilotagemVirtual-$tag-windows-x64.zip"
+          Compress-Archive -Path dist/PilotagemVirtual-G29-Spike/* -DestinationPath "PilotagemVirtual-G29-Spike-$tag-windows-x64.zip"
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $trainer = "PilotagemVirtual-$tag-windows-x64.zip#Treinador para Windows x64"
+          $diagnostic = "PilotagemVirtual-G29-Spike-$tag-windows-x64.zip#Diagnóstico G29 para Windows x64"
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $trainer $diagnostic --clobber
+          } else {
+            gh release create $tag $trainer $diagnostic `
+              --title "Pilotagem Virtual $tag" `
+              --generate-notes
+          }

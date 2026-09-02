@@ -1,6 +1,6 @@
 # Tarefas — MVP do treinador de trail braking
 
-**Status:** Build iniciado  
+**Status:** Build 1 — candidato à versão 0.1.0  
 **Spec:** [spec.md](spec.md)  
 **Plano:** [plan.md](plan.md)  
 
@@ -17,6 +17,8 @@
 - [x] **T003** Pesquisar stack, entrada, persistência e empacotamento.
 - [x] **T004** Aprovar o plano técnico.
 - [x] **T005** Definir o hardware spike e o contrato de exportação JSONL.
+- [x] **T006** Definir branches curtas, Conventional Commits e Versionamento Semântico.
+- [x] **T007** Criar changelog e automação de tag/release para os dois executáveis.
 
 ## Fase 1 — Fundação do projeto
 
@@ -24,6 +26,7 @@
 - [x] **T011** Criar layout `src` e entrypoint do hardware spike.
 - [x] **T012** Criar testes unitários do gravador JSONL.
 - [x] **T013** Configurar workflow Windows para testes e build `onedir`.
+- [x] **T014** Configurar workflow de release acionado por tag `vX.Y.Z`.
 
 ## Fase 2 — Hardware spike do G29
 
@@ -35,11 +38,11 @@
 - [x] **T025** Fazer flush periódico e fechamento seguro da captura.
 - [x] **T026** Mostrar frequência observada, quantidade de amostras e caminho escolhido.
 - [x] **T027** Tratar ausência e desconexão de dispositivo sem perder linhas já gravadas.
-- [ ] **T028 [HW]** Executar o `.exe` com o G29 e gravar movimentos completos do volante.
-- [ ] **T029 [HW]** Gravar acelerador e freio individualmente e simultaneamente.
+- [x] **T028 [HW]** Executar o `.exe` com o G29 e gravar movimentos completos do volante.
+- [x] **T029 [HW]** Gravar acelerador e freio individualmente e simultaneamente.
 - [ ] **T030 [HW]** Pressionar todos os botões e testar desconexão/reconexão.
 - [ ] **T031 [HW]** Adicionar a captura JSONL ao repositório para análise.
-- [ ] **T032** Analisar a captura e registrar o mapeamento, ruído e frequência real.
+- [x] **T032** Analisar a captura e registrar o mapeamento, ruído e frequência real.
 
 ### Critérios de conclusão do spike
 
@@ -53,15 +56,15 @@
 
 ## Fase 3 — Núcleo do MVP
 
-- [ ] **T040** Criar contratos de dispositivo e adaptador falso.
-- [ ] **T041** Consolidar o adaptador SDL conforme o resultado do spike.
-- [ ] **T042** Implementar domínio de calibração e normalização.
+- [x] **T040** Criar contratos de dispositivo e adaptador falso.
+- [x] **T041** Consolidar o adaptador SDL conforme o resultado do spike.
+- [x] **T042** Implementar domínio de calibração e normalização.
 - [ ] **T043** Implementar assistente de calibração.
 - [ ] **T044** Persistir e recuperar o perfil do dispositivo.
-- [ ] **T045** Definir e validar o schema JSON dos cenários.
-- [ ] **T046** Implementar máquina de estados do exercício.
-- [ ] **T047** Implementar mapa 2D e indicador temporal.
-- [ ] **T048** Implementar gravação de tentativas normalizadas.
+- [x] **T045** Definir e validar o schema JSON dos cenários.
+- [x] **T046** Implementar máquina de estados do exercício.
+- [x] **T047** Implementar mapa 2D e indicador temporal.
+- [x] **T048** Implementar gravação de tentativas normalizadas.
 
 ## Fase 4 — Pontuação e resultado
 
@@ -82,6 +85,17 @@
 - [ ] **T065 [HW]** Executar 30 tentativas consecutivas com o G29.
 - [ ] **T066** Validar todos os critérios de aceitação da Spec 001.
 
+## Exceção registrada no gate do spike
+
+Em 2 de setembro de 2026, a captura real forneceu evidência suficiente para iniciar o
+núcleo do treinador: todos os eixos foram mapeados e a frequência foi validada. Os testes
+de botões, hats e desconexão da T030 e o versionamento opcional da captura da T031 foram
+mantidos como pendências de hardware. Eles não bloqueiam o Build 1, mas devem ser
+concluídos antes do gate final do MVP.
+
 ## Próximo gate
 
-O projeto não avançará da Fase 2 para a calibração definitiva enquanto as tarefas T028 a T032 não forem concluídas. A captura real é a evidência necessária para decidir o mapeamento de eixos, filtro de ruído e frequência final de aquisição.
+O Build 1 deverá abrir no Windows, detectar o perfil observado do G29, normalizar os
+três controles principais, executar a máquina de estados completa e mover o indicador
+pelo mapa durante oito segundos. O próximo incremento só iniciará pontuação depois que
+essa fatia vertical for validada no hardware real.

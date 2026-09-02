@@ -146,3 +146,27 @@ O hardware real será exigido somente nos testes marcados como manuais.
 - [Python `time`](https://docs.python.org/3/library/time.html)
 - [NumPy `interp`](https://numpy.org/doc/stable/reference/generated/numpy.interp.html)
 - [pytest — parametrização](https://docs.pytest.org/en/stable/how-to/parametrize.html)
+
+## 10. Resultado do hardware spike no G29
+
+A captura real realizada em 2 de setembro de 2026 validou o adaptador SDL no
+Windows 11 com o Logitech G Hub. O arquivo contém 6.908 amostras em 55,26 segundos,
+com frequência observada de 125,009 Hz. O intervalo médio foi de 8,000 ms, a mediana
+de 8,043 ms, o percentil 95 de 8,687 ms e o maior intervalo de 10,133 ms.
+
+| Eixo | Controle observado | Repouso/centro | Extremo | Normalização inicial |
+|---|---|---:|---:|---|
+| 0 | Volante | entre -0,014 e +0,012 | -1,000 / +0,99997 | manter em `[-1, 1]` |
+| 1 | Acelerador | +0,99997 | -1,000 | `(1 - bruto) / 2` |
+| 2 | Freio | +0,99997 | -1,000 | `(1 - bruto) / 2` |
+| 3 | Embreagem | +0,99997 | -1,000 | `(1 - bruto) / 2` |
+
+Os três pedais são independentes e chegam invertidos: soltos próximos de `+1` e
+totalmente pressionados em `-1`. A interface pode exibi-los em `0–100%`, mas a
+captura diagnóstica deve continuar preservando os valores brutos.
+
+O desvio de centro observado do volante é pequeno, mas justifica uma zona morta
+inicial próxima de 2%. O assistente de calibração definitivo deverá medir esse valor
+por dispositivo em vez de fixá-lo. A captura não incluiu botões, hats nem teste de
+desconexão; essas validações manuais permanecem pendentes antes do fechamento formal
+do spike.

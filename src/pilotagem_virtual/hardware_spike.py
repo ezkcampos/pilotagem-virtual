@@ -29,6 +29,12 @@ from PySide6.QtWidgets import (
 )
 
 from pilotagem_virtual import __version__
+from pilotagem_virtual.g29_axes import (
+    G29_AXIS_DESCRIPTORS,
+    AxisDescriptor,
+    is_observed_g29_profile,
+    normalize_g29_axis,
+)
 from pilotagem_virtual.spike_capture import CaptureWriter, suggested_filename
 
 
@@ -37,18 +43,31 @@ TIMER_INTERVAL_MS = round(1000 / TARGET_HZ)
 
 
 class AxisRow:
-    def __init__(self, index: int) -> None:
-        self.label = QLabel(f"Eixo {index}")
+    def __init__(self, index: int, descriptor: AxisDescriptor | None = None) -> None:
+        self.index = index
+        self.descriptor = descriptor
+        name = descriptor.name if descriptor is not None else "Eixo"
+        self.label = QLabel(f"{name} (eixo {index})" if descriptor else f"Eixo {index}")
         self.bar = QProgressBar()
-        self.bar.setRange(0, 2000)
+        self.bar.setRange(0, 1000 if descriptor and descriptor.kind == "pedal" else 2000)
         self.bar.setTextVisible(False)
         self.value = QLabel("0.000000")
-        self.value.setMinimumWidth(90)
+        self.value.setMinimumWidth(190)
 
     def update(self, raw_value: float) -> None:
         bounded = max(-1.0, min(1.0, raw_value))
-        self.bar.setValue(round((bounded + 1.0) * 1000))
-        self.value.setText(f"{raw_value:+.6f}")
+        if self.descriptor is None:
+            self.bar.setValue(round((bounded + 1.0) * 1000))
+            self.value.setText(f"bruto {raw_value:+.6f}")
+            return
+
+        normalized = normalize_g29_axis(self.index, raw_value)
+        if self.descriptor.kind == "pedal":
+            self.bar.setValue(round(normalized * 1000))
+            self.value.setText(f"{normalized * 100:5.1f}% | bruto {raw_value:+.6f}")
+        else:
+            self.bar.setValue(round((normalized + 1.0) * 1000))
+            self.value.setText(f"{normalized * 100:+5.1f}% | bruto {raw_value:+.6f}")
 
 
 class HardwareSpikeWindow(QMainWindow):
@@ -78,14 +97,15 @@ class HardwareSpikeWindow(QMainWindow):
         central = QWidget()
         root = QVBoxLayout(central)
 
-        title = QLabel("Coletor de dados brutos do volante")
+        title = QLabel("Diagnóstico e calibração inicial do G29")
         title.setStyleSheet("font-size: 20px; font-weight: 600;")
         root.addWidget(title)
 
         instructions = QLabel(
             "Conecte o G29 e abra o Logitech G Hub. Durante a gravação, mova o volante "
             "até os dois limites, pressione cada pedal separadamente e depois em conjunto, "
-            "e pressione todos os botões. Os valores ainda não são calibrados."
+            "e pressione todos os botões. A tela normaliza o G29 em porcentagem; "
+            "o arquivo JSONL preserva os valores brutos."
         )
         instructions.setWordWrap(True)
         root.addWidget(instructions)
@@ -201,8 +221,14 @@ class HardwareSpikeWindow(QMainWindow):
                 widget.deleteLater()
 
         self._axis_rows = []
+        device_name = self._joystick.get_name() if self._joystick is not None else ""
+        known_profile = is_observed_g29_profile(device_name, count)
+        self.axes_group.setTitle(
+            "Eixos normalizados e valores brutos" if known_profile else "Eixos brutos"
+        )
         for index in range(count):
-            row = AxisRow(index)
+            descriptor = G29_AXIS_DESCRIPTORS.get(index) if known_profile else None
+            row = AxisRow(index, descriptor)
             self._axis_rows.append(row)
             self.axes_layout.addWidget(row.label, index, 0)
             self.axes_layout.addWidget(row.bar, index, 1)
@@ -351,6 +377,7 @@ class HardwareSpikeWindow(QMainWindow):
                     "wheel_full_left_and_right",
                     "accelerator_individual",
                     "brake_individual",
+                    "clutch_individual",
                     "accelerator_and_brake_together",
                     "all_buttons",
                 ],

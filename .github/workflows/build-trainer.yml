@@ -1,4 +1,4 @@
-name: Build G29 Hardware Spike
+name: Build Pilotagem Virtual Trainer
 
 on:
   workflow_dispatch:
@@ -6,14 +6,11 @@ on:
     branches: [main]
     paths:
       - "pyproject.toml"
-      - "spike_main.py"
-      - "src/pilotagem_virtual/__init__.py"
-      - "src/pilotagem_virtual/g29_axes.py"
-      - "src/pilotagem_virtual/hardware_spike.py"
-      - "src/pilotagem_virtual/spike_capture.py"
-      - "tests/test_g29_axes.py"
-      - "tests/test_spike_capture.py"
-      - ".github/workflows/build-g29-spike.yml"
+      - "trainer_main.py"
+      - "src/**"
+      - "resources/**"
+      - "tests/**"
+      - ".github/workflows/build-trainer.yml"
 
 permissions:
   contents: read
@@ -45,21 +42,22 @@ jobs:
           --clean
           --windowed
           --onedir
-          --name PilotagemVirtual-G29-Spike
+          --name PilotagemVirtual
           --paths src
-          spike_main.py
+          --add-data "resources;resources"
+          trainer_main.py
 
       - name: Create distributable archive
         shell: pwsh
         run: >-
           Compress-Archive
-          -Path dist/PilotagemVirtual-G29-Spike/*
-          -DestinationPath PilotagemVirtual-G29-Spike-windows-x64.zip
+          -Path dist/PilotagemVirtual/*
+          -DestinationPath PilotagemVirtual-windows-x64.zip
 
       - name: Upload executable artifact
         uses: actions/upload-artifact@v7
         with:
-          name: PilotagemVirtual-G29-Spike-windows-x64
-          path: PilotagemVirtual-G29-Spike-windows-x64.zip
+          name: PilotagemVirtual-windows-x64
+          path: PilotagemVirtual-windows-x64.zip
           retention-days: 14
           if-no-files-found: error
