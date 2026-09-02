@@ -6,9 +6,18 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e
 projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/) enquanto estiver
 na série inicial `0.x`.
 
-## [Unreleased]
+## [Unreleased]### Adicionado
+
+- Spec 002 de fundamentos do freio e telemetria visual, com alvo na versão 0.2.0.
+- Registro da aprovação do quality gate da Spec 002 em 2026-09-02, com sete decisões
+  adiadas explicitamente para experimentação no Plan.
+- Plano técnico da Spec 002 em revisão, com arquitetura, hipóteses, incrementos,
+  rastreabilidade e builds Windows pelo GitHub Actions.
 
 ### Planejado
+
+- Oito níveis de fundamentos do freio, gráfico temporal e modos Guiado, Memória e Avaliação.
+- Comparação didática com e sem ABS, mantendo o diagnóstico do G29 separado.
 
 - Assistente de calibração e persistência do perfil do dispositivo.
 - Pontuação determinística e feedback imediato da tentativa.
