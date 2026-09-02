@@ -19,9 +19,9 @@
 | Estado / ID | Entrega | Dependências | Requisitos / conclusão verificável |
 |---|---|---|---|
 | [x] T000 | Registrar aprovação e decomposição | Plan aprovado | Aprovação registrada; tarefas com dependências e gates neste documento. |
-| [ ] T010 | Contratos e dispositivo falso | T000 | RF2-012, RNF2-002: relógio injetável, encerramento explícito, exaustão sem duplicar a última leitura. |
-| [ ] T011 | Integridade e snapshot da sessão | T010 | RF2-012/025, CA2-008: timestamps crescentes, identidade nova, fronteira final real, cancelamento com motivo, snapshot imutável; repetir 30 vezes sem resíduo. |
-| [ ] T012 | Coordenador e proteção do legado | T011 | RF2-012, seção 4: quatro eixos, contagem e mapa preservados; UI recebe estado, timestamp vem do dispositivo; seleção bloqueada durante execução; desconexão visível. |
+| [x] T010 | Contratos e dispositivo falso | T000 | RF2-012, RNF2-002: relógio injetável, encerramento explícito, exaustão sem duplicar a última leitura. |
+| [x] T011 | Integridade e snapshot da sessão | T010 | RF2-012/025, CA2-008: timestamps crescentes, identidade nova, fronteira final real, cancelamento com motivo, snapshot imutável; repetir 30 vezes sem resíduo. |
+| [x] T012 | Coordenador e proteção do legado | T011 | RF2-012, seção 4: quatro eixos, contagem e mapa preservados; UI recebe estado, timestamp vem do dispositivo; seleção bloqueada durante execução; desconexão visível. |
 | [ ] T013 | Instrumentação de aquisição | T010/T011 | RNF2-002/003/004: frequência por segundo, percentis, lacunas, atraso de entrega e quadros desenhados; séries irregulares e vazias testadas. |
 | [ ] T014 | Experimento SDL/Qt reproduzível | T010/T013 | RNF2-002/003: thread principal e worker isolados, backend inicializado/fechado no contexto proprietário, entrada falsa e real, carga visual, relatório e testes de encerramento. |
 | [ ] T015 | Experimento de fronteiras de janela | T011 | RF2-026, CA2-002: comparar interpolação com/sem amostras externas, timestamps deslocados e lacunas; registrar decisão ou mudança de requisito ainda necessária antes de P2. |
@@ -91,3 +91,7 @@
 - Base antes da implementação: 24 testes aprovados, registro no Plan, seção 14.
 - Resultados incrementais serão registrados aqui e em relatórios vinculados,
   distinguindo testes automáticos, experimentos falsos e hardware real.
+
+- P0 / T010–T012: 48 testes passaram localmente (Python 3.12.4), incluindo
+  regressão Qt com fonte falsa em 1920×1080 e 2560×1080; aquisição real e
+  confirmação visual/manual permanecem no gate T016.

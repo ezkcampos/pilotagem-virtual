@@ -12,6 +12,7 @@ class DeviceInfo:
     axis_count: int
     button_count: int
     hat_count: int
+    instance_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -34,3 +35,5 @@ class InputBackend(Protocol):
     def list_devices(self) -> list[DeviceInfo]: ...
 
     def open_device(self, device_id: str) -> InputDevice: ...
+
+    def close(self) -> None: ...

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
@@ -20,14 +19,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pilotagem_virtual.domain.calibration import (
-    NormalizedControls,
-    observed_g29_profile,
-)
+from pilotagem_virtual.app.trainer import TrainerController
+from pilotagem_virtual.domain.acquisition import summarize_acquisition
 from pilotagem_virtual.domain.scenario import Scenario
-from pilotagem_virtual.domain.session import AttemptSession, SessionState
-from pilotagem_virtual.g29_axes import is_observed_g29_profile
-from pilotagem_virtual.input.device import InputDevice
+from pilotagem_virtual.domain.session import SessionState
 from pilotagem_virtual.input.pygame_device import PygameInputBackend
 from pilotagem_virtual.ui.track_map import TrackMapWidget
 
@@ -72,19 +67,16 @@ class ControlMeter(QWidget):
 
 
 class TrainerWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, controller: TrainerController | None = None) -> None:
         super().__init__()
         self.setWindowTitle("Pilotagem Virtual — Trail Braking")
         self.resize(1280, 760)
 
-        self.scenario = Scenario.load(
+        self.scenario = controller.session.scenario if controller else Scenario.load(
             resource_path("resources/scenarios/medium_right_v1.json")
         )
-        self.session = AttemptSession(self.scenario)
-        self.backend = PygameInputBackend()
-        self.device: InputDevice | None = None
-        self.profile = None
-        self.controls = NormalizedControls()
+        self.controller = controller or TrainerController(self.scenario, PygameInputBackend())
+        self.session = self.controller.session
         self._completion_announced = False
 
         self._build_ui()
@@ -93,8 +85,13 @@ class TrainerWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.setInterval(POLL_INTERVAL_MS)
-        self.timer.timeout.connect(self._tick)
+        self.timer.timeout.connect(self.controller.poll)
         self.timer.start()
+        self.render_timer = QTimer(self)
+        self.render_timer.setTimerType(Qt.TimerType.PreciseTimer)
+        self.render_timer.setInterval(17)
+        self.render_timer.timeout.connect(self._tick)
+        self.render_timer.start()
 
     def _build_ui(self) -> None:
         root_widget = QWidget()
@@ -106,7 +103,7 @@ class TrainerWindow(QMainWindow):
         branding = QVBoxLayout()
         title = QLabel("PILOTAGEM VIRTUAL")
         title.setStyleSheet("font-size: 24px; font-weight: 800; color: #EEE8DC;")
-        subtitle = QLabel("TREINO DE TRAIL BRAKING · BUILD 1")
+        subtitle = QLabel("TRAIL BRAKING · DESENVOLVIMENTO P0")
         subtitle.setStyleSheet("color: #08A6C7; font-weight: 600;")
         branding.addWidget(title)
         branding.addWidget(subtitle)
@@ -116,9 +113,9 @@ class TrainerWindow(QMainWindow):
         self.device_combo.setMinimumWidth(360)
         self.device_combo.currentIndexChanged.connect(self._select_device)
         top.addWidget(self.device_combo)
-        refresh = QPushButton("Detectar novamente")
-        refresh.clicked.connect(self._refresh_devices)
-        top.addWidget(refresh)
+        self.refresh_button = QPushButton("Detectar novamente")
+        self.refresh_button.clicked.connect(self._refresh_devices)
+        top.addWidget(self.refresh_button)
         root.addLayout(top)
 
         body = QHBoxLayout()
@@ -150,7 +147,7 @@ class TrainerWindow(QMainWindow):
         side_layout.addWidget(self.phase_label)
 
         self.steering_meter = ControlMeter("Volante", centered=True)
-        self.brake_meter = ControlMeter("Freio")
+        self.brake_meter = ControlMeter("Entrada do freio (%)")
         self.accelerator_meter = ControlMeter("Acelerador")
         side_layout.addWidget(self.steering_meter)
         side_layout.addWidget(self.brake_meter)
@@ -191,11 +188,11 @@ class TrainerWindow(QMainWindow):
         )
 
     def _refresh_devices(self) -> None:
+        if self.session.active:
+            return
         self.device_combo.blockSignals(True)
         self.device_combo.clear()
-        self.device = None
-        self.profile = None
-        devices = self.backend.list_devices()
+        devices = self.controller.refresh_devices()
         for device in devices:
             self.device_combo.addItem(device.name, device.device_id)
         self.device_combo.blockSignals(False)
@@ -211,88 +208,97 @@ class TrainerWindow(QMainWindow):
         if not device_id:
             return
         try:
-            self.device = self.backend.open_device(str(device_id))
-        except LookupError as error:
+            self.controller.select_device(str(device_id))
+        except (LookupError, RuntimeError) as error:
             self.device_status.setText(str(error))
             self.start_button.setEnabled(False)
             return
 
-        info = self.device.info
-        if is_observed_g29_profile(info.name, info.axis_count):
-            self.profile = observed_g29_profile(info.name, info.guid)
+        if self.controller.available:
             self.device_status.setText(
                 "G29 conectado · perfil observado carregado · calibração personalizada virá no próximo build"
             )
             self.start_button.setEnabled(True)
         else:
-            self.profile = None
             self.device_status.setText(
                 "Dispositivo detectado, mas ainda sem perfil compatível. Use o diagnóstico do G29."
             )
             self.start_button.setEnabled(False)
 
     def _tick(self) -> None:
-        now_ns = time.perf_counter_ns()
-        if self.device is not None and self.profile is not None:
-            raw = self.device.poll()
-            if not raw.connected:
-                self.session.cancel()
-                self.device_status.setText("G29 desconectado. Detecte o dispositivo novamente.")
-                self.start_button.setEnabled(False)
-                self.cancel_button.setEnabled(False)
-                return
-            self.controls = self.profile.normalize(raw.axes)
-
-        self.steering_meter.set_value(self.controls.steering)
-        self.brake_meter.set_value(self.controls.brake)
-        self.accelerator_meter.set_value(self.controls.accelerator)
-
-        if self.session.state in {SessionState.COUNTDOWN, SessionState.RUNNING}:
-            progress = self.session.tick(now_ns, self.controls)
-            self.map_widget.set_progress(progress)
-            if self.session.state == SessionState.COUNTDOWN:
-                self.phase_label.setText(str(self.session.countdown_value(now_ns)))
-            elif self.session.state == SessionState.RUNNING:
-                self.phase_label.setText(self.scenario.active_marker(progress).label)
-            elif self.session.state == SessionState.COMPLETED:
-                self._show_completion()
+        controls = self.controller.controls
+        self.steering_meter.set_value(controls.steering)
+        self.brake_meter.set_value(controls.brake)
+        self.accelerator_meter.set_value(controls.accelerator)
+        self.start_button.setEnabled(not self.session.active and self.controller.available)
+        if self.controller.error:
+            self.device_status.setText("Leitura indisponível. Detecte o G29 novamente.")
+        self.map_widget.set_progress(self.session.progress)
+        if self.session.state == SessionState.COUNTDOWN:
+            self.phase_label.setText(str(self.session.countdown_value(self.controller.clock_ns())))
+        elif self.session.state == SessionState.RUNNING:
+            self.phase_label.setText(self.scenario.active_marker(self.session.progress).label)
+        elif self.session.state == SessionState.COMPLETED:
+            self._show_completion()
+        elif self.session.state == SessionState.CANCELLED and not self._completion_announced:
+            self._show_cancelled()
 
     def _start_or_repeat(self) -> None:
-        if self.device is None or self.profile is None:
-            QMessageBox.information(self, "G29 necessário", "Conecte o G29 para iniciar a tentativa.")
+        try:
+            self.controller.start()
+        except RuntimeError as error:
+            QMessageBox.information(self, "G29 necessário", str(error))
             return
-        self.session.start(time.perf_counter_ns())
         self._completion_announced = False
         self.result_label.setText("")
         self.phase_label.setText("3")
         self.map_widget.set_progress(0.0)
         self.start_button.setEnabled(False)
         self.cancel_button.setEnabled(True)
+        self.device_combo.setEnabled(False)
+        self.refresh_button.setEnabled(False)
 
     def _cancel(self) -> None:
-        self.session.cancel()
+        self.controller.cancel()
+        self._show_cancelled()
+
+    def _show_cancelled(self) -> None:
+        self._completion_announced = True
         self.phase_label.setText("CANCELADO")
-        self.result_label.setText("Tentativa cancelada. Você pode iniciar novamente.")
+        message = "Tentativa cancelada. Você pode iniciar novamente."
+        if self.session.reason != "user_cancelled":
+            message = "Captura interrompida por falha de leitura. Detecte o G29 novamente."
+        self.result_label.setText(message)
         self.start_button.setText("Tentar novamente")
-        self.start_button.setEnabled(self.device is not None and self.profile is not None)
+        self.start_button.setEnabled(self.controller.available)
         self.cancel_button.setEnabled(False)
+        self.device_combo.setEnabled(True)
+        self.refresh_button.setEnabled(True)
 
     def _show_completion(self) -> None:
         if self._completion_announced:
             return
         self._completion_announced = True
         self.phase_label.setText("CONCLUÍDO")
+        snapshot = self.session.snapshot()
+        report = summarize_acquisition(
+            [sample.elapsed_ns for sample in snapshot.samples], self.session.duration_ns,
+        )
+        quality = " Verifique a captura: houve lacunas ou baixa frequência." if report.issues else ""
         self.result_label.setText(
-            f"Tentativa capturada com {len(self.session.samples)} amostras normalizadas. "
-            "A pontuação será adicionada no próximo incremento."
+            f"{report.sample_count} amostras · leitura média {report.observed_hz:.1f} Hz. "
+            f"Exercício legado sem pontuação.{quality}"
         )
         self.start_button.setText("Repetir tentativa")
         self.start_button.setEnabled(True)
         self.cancel_button.setEnabled(False)
+        self.device_combo.setEnabled(True)
+        self.refresh_button.setEnabled(True)
 
     def closeEvent(self, event: Any) -> None:
         self.timer.stop()
-        self.backend.close()
+        self.render_timer.stop()
+        self.controller.close()
         super().closeEvent(event)
 
 

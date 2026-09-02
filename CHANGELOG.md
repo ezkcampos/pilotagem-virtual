@@ -12,6 +12,10 @@ na série inicial `0.x`.
 
 - Aprovação do Plan 002 e decomposição em Tasks em 2026-09-02; P0 autorizado,
   mantendo hipóteses experimentais e gates de hardware/merge/release separados.
+- Sessões com identidade própria, snapshots imutáveis e contexto real de fronteira;
+  diagnósticos de frequência por segundo, intervalos e lacunas da captura.
+- Testes de integração/interface com dispositivo falso, 30 repetições e regressão
+  do cenário legado nas duas resoluções previstas.
 
 - Spec 002 de fundamentos do freio e telemetria visual, com alvo na versão 0.2.0.
 - Registro da aprovação do quality gate da Spec 002 em 2026-09-02, com sete decisões
@@ -28,6 +32,11 @@ na série inicial `0.x`.
   sujeitos aos experimentos; persistência de snapshots para reprocessamento.
 
 ### Corrigido
+
+- Captura do treinador usa timestamps da leitura e rejeita eixos inválidos,
+  duplicação temporal e fim de replay, sem fabricar amostras.
+- Desconexão via eventos SDL, proteção contra troca de dispositivo durante a
+  tentativa e separação dos temporizadores de leitura e desenho no treinador.
 
 - Título de CA2-004 alinhado ao modo Avaliação, preservando o enunciado aprovado.
 - Descrição da aquisição na Spec 002 distingue o alvo de 120 Hz de uma medição.

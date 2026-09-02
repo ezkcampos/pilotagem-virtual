@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import time
+import threading
+from collections.abc import Callable
 
 os.environ.setdefault("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1")
 
@@ -11,17 +13,30 @@ from pilotagem_virtual.input.device import DeviceInfo, RawInputState
 
 
 class PygameInputDevice:
-    def __init__(self, joystick: pygame.joystick.JoystickType, info: DeviceInfo) -> None:
+    def __init__(
+        self, joystick: pygame.joystick.JoystickType, info: DeviceInfo,
+        clock_ns: Callable[[], int] = time.perf_counter_ns,
+    ) -> None:
         self._joystick = joystick
         self._info = info
+        self._clock_ns = clock_ns
+        self._owner = threading.get_ident()
+        self._connected = True
 
     @property
     def info(self) -> DeviceInfo:
         return self._info
 
     def poll(self) -> RawInputState:
-        pygame.event.pump()
+        if threading.get_ident() != self._owner:
+            raise RuntimeError("Leitura SDL fora da thread proprietária")
+        if not self._connected:
+            return RawInputState(self._clock_ns(), (), (), (), connected=False)
         try:
+            for event in pygame.event.get():
+                if event.type == pygame.JOYDEVICEREMOVED and event.instance_id == self.info.instance_id:
+                    self._connected = False
+                    return RawInputState(self._clock_ns(), (), (), (), connected=False)
             axes = tuple(
                 self._joystick.get_axis(index)
                 for index in range(self._joystick.get_numaxes())
@@ -35,24 +50,34 @@ class PygameInputDevice:
                 for index in range(self._joystick.get_numhats())
             )
         except pygame.error:
-            return RawInputState(time.perf_counter_ns(), (), (), (), connected=False)
-        return RawInputState(time.perf_counter_ns(), axes, buttons, hats)
+            self._connected = False
+            return RawInputState(self._clock_ns(), (), (), (), connected=False)
+        return RawInputState(self._clock_ns(), axes, buttons, hats)
 
 
 class PygameInputBackend:
-    def __init__(self) -> None:
+    def __init__(self, clock_ns: Callable[[], int] = time.perf_counter_ns) -> None:
+        self._owner = threading.get_ident()
+        self._clock_ns = clock_ns
+        self._closed = False
         pygame.init()
         pygame.joystick.init()
         self._devices: dict[str, tuple[pygame.joystick.JoystickType, DeviceInfo]] = {}
 
     def list_devices(self) -> list[DeviceInfo]:
+        self._check_owner()
+        if self._closed:
+            raise RuntimeError("Backend SDL encerrado")
+        for joystick, _ in self._devices.values():
+            joystick.quit()
         self._devices.clear()
-        pygame.event.pump()
+        pygame.event.get()
         for index in range(pygame.joystick.get_count()):
             joystick = pygame.joystick.Joystick(index)
             joystick.init()
             guid = self._safe_guid(joystick)
-            device_id = f"{guid}:{index}"
+            instance_id = joystick.get_instance_id()
+            device_id = f"{guid}:{instance_id}"
             info = DeviceInfo(
                 device_id=device_id,
                 name=joystick.get_name(),
@@ -60,20 +85,31 @@ class PygameInputBackend:
                 axis_count=joystick.get_numaxes(),
                 button_count=joystick.get_numbuttons(),
                 hat_count=joystick.get_numhats(),
+                instance_id=instance_id,
             )
             self._devices[device_id] = (joystick, info)
         return [item[1] for item in self._devices.values()]
 
     def open_device(self, device_id: str) -> PygameInputDevice:
+        self._check_owner()
         try:
             joystick, info = self._devices[device_id]
         except KeyError as error:
             raise LookupError(f"Dispositivo não encontrado: {device_id}") from error
-        return PygameInputDevice(joystick, info)
+        return PygameInputDevice(joystick, info, self._clock_ns)
 
     def close(self) -> None:
+        self._check_owner()
+        if self._closed:
+            return
+        self._closed = True
+        self._devices.clear()
         pygame.joystick.quit()
         pygame.quit()
+
+    def _check_owner(self) -> None:
+        if threading.get_ident() != self._owner:
+            raise RuntimeError("Backend SDL fora da thread proprietária")
 
     @staticmethod
     def _safe_guid(joystick: pygame.joystick.JoystickType) -> str:
