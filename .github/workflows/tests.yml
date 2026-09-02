@@ -1,0 +1,28 @@
+name: Test Pilotagem Virtual
+
+on:
+  push:
+    branches: [feature/002-brake-control]
+    paths: ["src/**", "tests/**", "resources/**", "pyproject.toml", ".github/workflows/tests.yml"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install ".[dev]"
+      - name: Test with fake devices
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest

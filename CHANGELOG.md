@@ -16,6 +16,11 @@ na série inicial `0.x`.
   diagnósticos de frequência por segundo, intervalos e lacunas da captura.
 - Testes de integração/interface com dispositivo falso, 30 repetições e regressão
   do cenário legado nas duas resoluções previstas.
+- Modo experimental de aquisição P0 no treinador, com fonte falsa/G29, thread
+  principal/worker, carga visual e exportação JSON; worker permanece fora do
+  caminho normal do treinador até validação física.
+- CI Windows para testes na branch de desenvolvimento e identidade do commit
+  nos relatórios dos builds manuais do treinador.
 
 - Spec 002 de fundamentos do freio e telemetria visual, com alvo na versão 0.2.0.
 - Registro da aprovação do quality gate da Spec 002 em 2026-09-02, com sete decisões

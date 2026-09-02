@@ -303,6 +303,9 @@ class TrainerWindow(QMainWindow):
 
 
 def main() -> int:
+    if "--acquisition-probe" in sys.argv:
+        from pilotagem_virtual.acquisition_probe import main as probe_main
+        return probe_main([arg for arg in sys.argv[1:] if arg != "--acquisition-probe"])
     app = QApplication(sys.argv)
     app.setApplicationName("Pilotagem Virtual")
     app.setOrganizationName("Pilotagem Virtual")
