@@ -16,13 +16,27 @@ na série inicial `0.x`.
 - Plano técnico da Spec 002 em revisão, com arquitetura, hipóteses, incrementos,
   rastreabilidade e builds Windows pelo GitHub Actions.
 
+### Alterado
+
+- Revisão preparatória do Plan 002 contra o código: restrições de SDL/Qt,
+  timestamps e fronteiras ainda por validar, integridade dos dados, métricas,
+  compatibilidade legada e dependências dos incrementos. Gate do Plan pendente.
+- Pontuação da família de sustentação prevista já em P2, com pesos e escalas
+  sujeitos aos experimentos; persistência de snapshots para reprocessamento.
+
+### Corrigido
+
+- Título de CA2-004 alinhado ao modo Avaliação, preservando o enunciado aprovado.
+- Descrição da aquisição na Spec 002 distingue o alvo de 120 Hz de uma medição.
+
 ### Planejado
 
 - Oito níveis de fundamentos do freio, gráfico temporal e modos Guiado, Memória e Avaliação.
 - Comparação didática com e sem ABS, mantendo o diagnóstico do G29 separado.
 - Assistente de calibração e persistência do perfil do dispositivo.
 - Pontuação determinística e feedback imediato da tentativa.
-- Histórico local e comparação entre tentativas.
+- Histórico local completo e comparação entre sessões permanecem no backlog da
+  Spec 001, fora da 0.2.0; nesta Spec, preservar dados para resultado/reprocessamento.
 
 ## [0.1.0] - 2026-09-02
 

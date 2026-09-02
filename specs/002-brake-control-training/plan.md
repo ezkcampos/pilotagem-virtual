@@ -7,8 +7,10 @@
 **Spec relacionada:** [spec.md](spec.md)
 **Plano anterior:** [Spec 001 — plano](../001-trail-braking-mvp/plan.md)
 **Branch:** feature/002-brake-control
-**Base analisada:** 3a4e7af03af39cafc58ed55ffe2db8369e4cbe3b, descendente de
-742d64cfced100512b022d33f9508360dcc39a5e (main / v0.1.0 na abertura da fase).
+**Base reauditada:** 1330d4d80c5409bd448d4f37119020077db2448c, confirmada após
+fetch em 2026-09-02; cinco commits à frente e zero atrás da origin/main.
+**Base funcional:** 742d64cfced100512b022d33f9508360dcc39a5e (main / v0.1.0).
+Os cinco commits são documentais; a revisão não presume implementação da Spec 002.
 
 ## 1. Autorização e fronteira da fase
 
@@ -29,6 +31,7 @@ nesta fase. O merge na main continua pendente de autorização explícita.
 |---|---|---|
 | Stack | Python 3.12 no CI, PySide6 6.11.2, pygame 2.6.1, PyInstaller 6.22.2 | Reutilizar o stack; evitar dependências novas no primeiro incremento. |
 | trainer_app.py | Cenário fixo; QTimer de 8 ms lê G29 e atualiza widgets | Separar aquisição, sessão e renderização; configuração do timer não comprova frequência efetiva. |
+| input/pygame_device.py | Usa pump sem consumir a fila; timestamp ao final da leitura; ID inclui índice de enumeração | Consumir eventos de remoção por instance ID, tratar falha do pump e fechar recursos; identidade persistente separada. |
 | domain/calibration.py | Normaliza quatro comandos; perfil observado e máximo confortável | Adicionar deadzone do freio, assistente, validação e persistência; preservar os demais eixos. |
 | domain/scenario.py | Exige direção, geometria e marcadores; duração de 5–10 s | Suportar exercícios sem mapa e manter compatibilidade legada. |
 | domain/session.py | Preview, Countdown, Running, Completed, Cancelled; amostras em memória | Reutilizar estados; definir identidade, validade, fronteiras temporais e snapshot final. |
@@ -36,6 +39,20 @@ nesta fase. O merge na main continua pendente de autorização explícita.
 | Persistência | Não existe módulo na árvore atual | Implementar SQLite conforme direção do plano 001; não presumir histórico pronto. |
 | Diagnóstico | Entrada spike_main.py e workflow próprios | Manter aplicativo e captura JSONL bruta independentes. |
 | Testes | Calibração, eixos, cenários, sessão e captura do spike | Expandir com contratos, séries sintéticas, falhas e interface. |
+
+Achados que condicionam P0/P1: TrainerWindow._tick usa um relógio anterior ao
+poll e ignora RawInputState.timestamp_ns; AttemptSession.tick aceita timestamps
+repetidos e acrescenta a primeira amostra posterior à duração como conclusão.
+FakeInputDevice repete o último estado, inclusive seu timestamp, ao esgotar a
+série. O contrato InputBackend não declara close, embora o adaptador concreto
+o implemente. A seleção/redetecção continua disponível durante a tentativa.
+Esses comportamentos não são contratos prontos para a aquisição da Spec 002.
+
+CalibrationProfile.normalize substitui eixos ausentes por zero bruto, o que pode
+virar entrada de pedal intermediária. Validar presença dos eixos e finitude antes
+de normalizar; dados inválidos não podem virar comandos aparentemente válidos.
+O mapa existente é um QWidget com QPainter, não a QGraphicsScene proposta no
+plano 001. Reutilizá-lo sem exigir uma migração de tecnologia de desenho.
 
 O cenário medium_right_v1.json dura 8 s e possui marcadores em progresso 0,20
 (frear), 0,42 (turn-in), 0,52 (trail), 0,70 (ápice) e 0,84 (acelerar).
@@ -68,23 +85,48 @@ reduz a série usada no cálculo.
 
 ### 3.1 Aquisição e renderização
 
-Proposta: worker dedicado, com inicialização, enumeração, abertura, bombeamento
+Hipótese: worker dedicado, com inicialização, enumeração, abertura, processamento
 de eventos SDL, leitura e encerramento no mesmo contexto. Candidato: QObject em
-QThread, agendado por relógio monotônico com alvo de 120 Hz. Validar a combinação
-SDL/Qt/G29 no Windows antes de consolidar. Não mover apenas pygame.event.pump()
-e deixar o restante do backend em outra thread.
+QThread, agendado por relógio monotônico com alvo de 120 Hz. Não mover apenas
+pygame.event.pump() e deixar o restante do backend em outra thread.
+
+A documentação de [Pygame Event](https://www.pygame.org/docs/ref/event.html)
+exige que pump execute na thread que inicializou pygame.display. O
+[SDL2](https://wiki.libsdl.org/SDL2/SDL_PumpEvents) também exige a thread que
+inicializou vídeo e recomenda a principal por segurança. Portanto, construir
+PygameInputBackend na UI e movê-lo depois não valida o candidato. Registrar a
+versão SDL carregada, subsistemas inicializados e thread proprietária; confirmar
+também o funcionamento da fila sem janela SDL, usado na base atual.
+
+Consumir a fila de eventos, tratar JOYDEVICEREMOVED por instance ID e converter
+falhas de leitura/pump em perda de conexão. GUID identifica o perfil compatível;
+instance ID identifica a conexão atual. Índices podem mudar na reconexão, segundo
+[Pygame Joystick](https://www.pygame.org/docs/ref/joystick.html). Reabrir requer
+seleção compatível e novo vínculo; não retomar automaticamente a tentativa.
 
 A UI atualiza a até 60 FPS em temporizador próprio; Qt Widgets fica na thread
 da UI. Publicar último estado para medidores e lotes incrementais para o gráfico,
 evitar redesenho por amostra. Serializar iniciar/cancelar/trocar dispositivo;
 identificar a tentativa para descartar eventos atrasados. Congelar perfil durante
-execução. Fechamento cancela coleta e encerra worker e banco.
+execução. Fechamento cancela coleta e encerra worker e banco. Separar a série
+completa dos lotes visuais: consumo lento da UI pode condensar atualizações
+visuais, nunca descartar silenciosamente amostras do gravador. Sobrecarga da
+fila de aquisição deve ter motivo de invalidação e evidência de diagnóstico.
 
-Experimento inicial: medir leitura sem gráfico, com gráfico e durante
-redimensionamento. Se worker SDL não for estável, registrar evidências e revisar
-a arquitetura antes de prosseguir. Manter polling na UI só pode ser alternativa
-se cumprir as mesmas metas mensuradas; não basta funcionar visualmente. Não
-alterar o diagnóstico para forçar a arquitetura do treinador.
+Se usado, criar/iniciar/parar QTimer na sua thread com event loop. Qt admite
+atrasos e emite somente um timeout após múltiplos vencimentos; um timer preciso
+não garante a frequência. Atrasos devem produzir timestamps reais, sem rajadas
+de amostras com horários inventados. Fonte: [QTimer](https://doc.qt.io/qtforpython-6/PySide6/QtCore/QTimer.html).
+
+Experimento em P0: comparar a leitura na thread principal com o candidato worker,
+sem desenho, com carga visual representativa e durante redimensionamento. Medir
+sessões de 10 s, testar cancelamento, desconexão/reconexão e fechamento; repetir
+com o widget real em P3/P7. O código experimental só será criado após o gate do
+Plan. Worker sem compatibilidade documentada e evidência Windows/G29 não passa
+para o treinador. Polling na thread principal só pode ser alternativa se cumprir
+as mesmas metas mensuradas com renderização separada. Se ambos falharem, revisar
+a arquitetura antes de integrar: processo separado ou backend alternativo exigem
+nova decisão registrada. Não alterar o diagnóstico para forçar essa arquitetura.
 
 ### 3.2 Tempo e integridade
 
@@ -99,9 +141,28 @@ e nenhum intervalo acima de 50 ms. Limites sujeitos ao experimento de aquisiçã
 registrar também média, percentis e maior intervalo. Não aprovar só pela média total.
 
 Cancelada, desconectada ou inválida não recebe nota comparável; guardar motivo e
-oferecer repetir. Nota 0–100 se aplica à tentativa concluída válida. Parar coleta
-pela duração; interpolar limites apenas quando houver amostras reais delimitando
-a janela. Não extrapolar trechos ausentes.
+oferecer repetir. Nota 0–100 se aplica à tentativa concluída válida; o resultado
+inválido explica a ausência de nota, sem atribuir zero por falha de aquisição.
+
+P0 deve definir a convenção das fronteiras antes de pontuar: início/fim usam a
+origem monotônica, não o instante de entrega de um sinal Qt. Preservar o horário
+real da primeira leitura após o fim como contexto de fronteira, sem deslocá-la
+para dentro da execução ou incluí-la na contagem de frequência da tentativa.
+Interpolação só pode usar leituras reais delimitadoras dentro da política de
+lacunas. Snapshot final depende da confirmação do gravador, não de um timeout
+isolado da UI; lote atrasado não pode alterar um resultado já congelado.
+
+RF2-026 exige que alterações na fase permitida de aquisição, anterior à janela
+avaliada, não mudem as métricas de sustentação. Filtros não podem carregar estado
+da fase anterior.
+Há uma decisão técnica ainda aberta em P0: cobertura das bordas quando não há
+amostra exatamente no início/fim da janela. Interpolar com pontos externos pode
+violar essa invariância; exigir coincidência exata pode invalidar captura normal.
+Comparar convenções com timestamps deslocados/irregulares e entradas opostas
+antes da janela. Registrar cobertura, denominador temporal e erro de fronteira;
+não extrapolar lacunas nem chamar cobertura parcial de integral. Se a solução
+exigir relaxar RF2-026 ou aceitar cobertura parcial, submeter a revisão explícita
+antes de P2. Esse conflito não está resolvido apenas pela escolha de 120 Hz.
 
 ## 4. Calibração e persistência
 
@@ -123,7 +184,10 @@ máximo de treino nessa escala:
 
 Validar finitude, amplitude mínima e 0 <= d < m <= 1. O sinal de p-r cobre inversão.
 Deadzone vem do ruído de repouso com margem configurável. Migração do perfil atual:
-d=0 e m=comfortable_max preservam comportamento. Restaurar o perfil observado é
+d=0 e m=clamp(comfortable_max, 0.05, 1) preservam o comportamento dos valores
+legados finitos; perfis degenerados/não finitos devem ser rejeitados, não migrados
+silenciosamente. Hoje não há perfis persistidos a migrar: trata-se de compatibilidade
+com o modelo em memória. Restaurar o perfil observado é
 uma ação explícita e reversível; perfil inválido/ausente abre o assistente.
 
 SQLite fica no diretório local de dados do aplicativo, fora do executável. Usar
@@ -134,11 +198,29 @@ eventos e resultado. Não substituir dado capturado por série filtrada. Captura
 bruta dos eixos continua no diagnóstico separado. Falha de escrita fica visível;
 manter resultado em memória para nova tentativa de salvamento.
 
+Guardar o conteúdo dos snapshots, além dos hashes: cenário, parâmetros da fórmula,
+filtro/limiares de ruído, política de validade, perfil e modelo de aderência. Uma
+referência a um perfil editável não basta para reproduzir um resultado. Salvar
+tentativa, amostras, eventos e relatório atomicamente; usar ID para tornar nova
+tentativa de salvamento idempotente. Se o cálculo falhar, preservar primeiro as
+amostras com estado pendente/erro, sem inventar relatório. Repetir não pode apagar
+um salvamento pendente; limitar a fila e informar quando exigir nova tentativa de
+escrita. A conexão SQLite pertence ao contexto que escreve e fecha o banco.
+
 ## 5. Contrato dos exercícios
 
 Adicionar schema_version separado da versão do conteúdo. Arquivos legados sem o
 campo passam por adaptador explícito de curva. Não inventar alvo ou pontuação para
 o arquivo legado durante migração.
+
+Proposta de compatibilidade a aceitar neste gate: conservar o treino legado de
+8 s, mapa, marcadores, quatro eixos, contagem, captura, cancelar e repetir, ainda
+identificado como legado sem pontuação. O nível 7 será um novo exercício versionado
+que referencia essa geometria, com nota para tentativas válidas. Essa distinção
+explicita a aplicação de RF2-021 ao currículo novo, sem alterar silenciosamente o
+arquivo legado; se não for aceita, revisar esse contrato antes de P2.
+Os modos novos só aparecem onde implementados e permitidos pelo cenário, sem
+prometer Avaliação enquanto medidores legados ainda estiverem visíveis.
 
 Campos novos: tipo, categoria, ordem pedagógica, instruções, duração, modos,
 política de assistência, curvas-alvo, tolerâncias, fases/janelas, métricas, pesos
@@ -158,7 +240,11 @@ são somente leitura. Cenário inválido não aparece como executável; informar
 ## 6. Hipóteses das sete decisões adiadas
 
 São propostas para avaliação, não decisões já aprovadas ou experimentos realizados.
-Registrar resultados antes de implementar o incremento afetado.
+O gate autoriza decompor e executar os experimentos dentro dos incrementos; não
+aprova automaticamente seus valores candidatos. Registrar método, evidência,
+decisão e versão resultante antes de promover a hipótese a comportamento entregue.
+Mudança de escopo volta ao responsável; ajustes técnicos dentro do escopo ficam
+justificados no plano. E04/E05 exigem fechamento para sustentação já em P2.
 
 | ID | Decisão | Hipótese | Validação e ponto de decisão |
 |---|---|---|---|
@@ -166,7 +252,7 @@ Registrar resultados antes de implementar o incremento afetado.
 | E02 | Modo Memória | Só percentual atual e instruções; comparar variante somente instruções | Treino nas duas variantes seguido de Avaliação; registrar variante, erro e consistência; não misturar resultados de assistências diferentes. |
 | E03 | Gráfico da curva | Abaixo do mapa em 16:9; comparar lateral em 21:9 | Capturas em 1920×1080 e 2560×1080; marcadores e ações legíveis, sem sobreposição. |
 | E04 | Alvos/tempos/tolerâncias | Sementes abaixo | Séries perfeitas/ruidosas e G29; tolerância não pune ruído nem esconde erro relevante. Fechar por família antes de pontuar. |
-| E05 | Pesos | Distribuições da seção 8, iguais entre modos | Ordenação por qualidade em séries sintéticas e revisão do feedback antes do treino real. |
+| E05 | Pesos e escalas | Distribuições da seção 8, iguais entre modos | Fechar unidades, escalas e agregação por fase; ordenar séries sintéticas e verificar feedback. Sustentação em P2, demais famílias em P4/P5/P6, antes do treino real. |
 | E06 | Som de travamento | Alerta visual; som opcional desligado inicialmente | Avaliar compreensão/distração; se aprovado, tocar em transições com limitação de repetição, sem afetar captura. |
 | E07 | Comparação ABS | Introdução com ABS seguida de tentativa sem ABS pontuada | Métricas separadas, mesmas condições; validar entendimento/repetição. Se ambas forem pontuadas, definir fórmula/identidade distintas. |
 
@@ -203,10 +289,21 @@ liberação e travamentos. Seleção/cursor mostra valores e tempos; lista textu
 eventos dá alternativa à leitura do gráfico. Fundamentos priorizam gráfico;
 curva preserva mapa e marcadores.
 
+Lacunas devem aparecer como interrupções identificadas, não como uma curva contínua
+inventada. Min/max para desenho preserva picos e ordem temporal; seleção de valores
+consulta as amostras originais e identifica valores interpolados quando exibidos.
+
 Guiado revela todos os elementos. Memória segue E02 e revela comparação no
 resultado. Avaliação esconde execução em curvas, medidores, números, tooltips e
 atalhos; pode mostrar instruções, contagem e tempo restante. Alvo e execução
 aparecem no resultado. Modos não alteram aquisição, alvo, filtro ou fórmula.
+
+Centralizar a política visual também para rótulos de fase, textos acessíveis,
+hover, resultado anterior e overlays da simulação; limpar esses elementos ao
+repetir. Alerta de travamento é distinto de medidor de entrada, mas curvas de
+modulação podem revelar a execução: em Avaliação, não exibir sinais simulados
+que a revelem. Se o nível 8 não suportar essa política, não oferecer esse modo
+até resolver a assistência, conforme os modos permitidos do cenário.
 
 Seleção mostra objetivo, duração, alvo, tolerância e modo. Resultado mostra nota,
 subpontuações, feedback, repetir e próximo nível. Verificar 30 repetições sem
@@ -220,15 +317,26 @@ métricas, subpontuações, nota, feedback e eventos, sem UI, relógio ou aleato
 
 1. Validar integridade e recortar janelas. Amostras externas não influenciam suas
    métricas; aquisição é avaliada separadamente.
-2. Reamostrar a 120 Hz com interpolação linear entre amostras reais. Grade,
-   fronteiras e arredondamento fazem parte da versão da fórmula.
-3. Usar série original para erro e tempo na faixa. Para eventos/suavidade, testar
-   filtro curto e limiares derivados do ruído, com parâmetros registrados.
+2. Para erro, tempo na faixa e estabilidade, usar integração ponderada pelo tempo
+   sobre os segmentos delimitados pelas amostras originais e keyframes do alvo,
+   com cruzamentos da tolerância explícitos. Não contar amostras como duração.
+   A política de fronteiras da seção 3.2 é pré-condição, inclusive para CA2-002.
+3. Criar uma série derivada em grade de 120 Hz somente para eventos/suavidade e
+   modelo didático, interpolando entre leituras reais válidas. Registrar origem
+   da grade, regra de conversão para nanossegundos, extremos e filtro na versão;
+   não apresentar pontos derivados como aquisição. Erro/tempo na faixa não usam
+   a série filtrada; as séries originais permanecem intactas.
 4. Converter métricas em penalidades [0,1] por escalas explícitas do cenário.
    Subnota = 100 × (1 − penalidade); nota geral = média ponderada. Pesos zero
    desativam componentes; proibir soma zero.
 5. Feedback vem da maior penalidade normalizada; empate por ordem fixa de IDs.
    Exibir métricas intermediárias; arredondar apenas na apresentação.
+
+Feedback considera somente componentes ativos (peso positivo), sem multiplicar
+a penalidade pelo peso novamente. Se todas forem zero, apresentar acerto coerente,
+não um erro inexistente. Cada componente declara fase, unidade, escala positiva,
+agregação e código de feedback. CA2-005 precisa continuar produzindo feedback de
+liberação abrupta mesmo quando o maior componente for o erro da curva.
 
 Tempo na faixa é fração de duração, ponderada no tempo; janela integralmente na
 faixa recebe subnota máxima. Erro usa MAE; estabilidade usa dispersão na sustentação.
@@ -236,6 +344,21 @@ Aquisição exige permanência mínima candidata de 200 ms para não premiar uma
 passagem isolada. Liberação mede MAE, início/fim, variação da taxa e reaplicações
 significativas, com limiar de amplitude/duração. Ruído pequeno não vira evento;
 filtragem não pode apagar reaplicação real. Parâmetros são fechados em E04/E05.
+
+Definições a fechar nos experimentos, antes de atribuir notas:
+
+- MAE em pontos percentuais, dispersão ponderada pelo tempo na sustentação e
+  aquisição em segundos desde o início da fase correspondente. Para uma métrica
+  de erro e escala positiva S, candidato: penalidade = clamp(erro / S, 0, 1).
+  Tempo na faixa usa 1 − fração temporal; nenhuma escala pode vir da taxa de FPS.
+- Suavidade deve medir desvios da liberação esperada, não premiar pedal imóvel
+  nem penalizar as mudanças de inclinação do próprio alvo. Aplicar a mesma
+  convenção ao alvo e execução; validar ruído e reaplicação separadamente.
+- Falta de aquisição/liberação/recuperação deve ter penalidade definida, sem NaN
+  nem exclusão que redistribua pesos silenciosamente. Declarar como fases se
+  agregam e verificar se erro e tempo fora da faixa não dominam em duplicidade.
+- Quando a sequência sem ABS termina travada, informar recuperação não concluída
+  e duração observada; não tratar o fim do exercício como evento de recuperação.
 
 | Família | Pesos candidatos, soma 100 |
 |---|---|
@@ -255,6 +378,15 @@ Motor puro, passo fixo 1/120 s, parâmetros versionados e estado inicial explíc
 Começar por limite fixo 80%; depois perfis seco/molhado/escorregadio/variável por
 dados. São exemplos didáticos, não medidas de veículos reais.
 
+RF2-028 exige configuração variável: P6 deve incluir limite por keyframes no
+tempo e um caso variável validado, além do limite fixo de CA2-007. A alternativa
+por velocidade fica dispensada nessa escolha; não é necessário inventar física
+de velocidade. O estado inicial, o passo e a entrada derivada devem produzir os
+mesmos eventos no cálculo final e na prévia ao vivo; lacunas invalidantes não
+podem ser atravessadas pelo modelo como se houvesse captura contínua.
+Se a interpolação exigir a próxima leitura, a prévia aguarda esse par e registra
+o atraso; não extrapola entrada nem avança o modelo a cada frame da interface.
+
 Sem ABS: ultrapassar limite entra em travamento; recuperar exige reduzir até
 limite menos margem. Sementes: margem 3 pp e permanência de 100 ms. Medir tempo
 da entrada em travamento até recuperação. Se terminar travado, fechar intervalo
@@ -272,14 +404,22 @@ Feedback ensina aliviar o suficiente e reaplicar próximo ao limite. Não recome
 bombear continuamente nem apresentar técnica universal. Som e formato das etapas
 continuam sujeitos a E06/E07.
 
+E07 precisa distinguir uma demonstração introdutória de uma tentativa válida:
+a proposta é introdução com ABS e tentativa sem ABS pontuada. Se a etapa com ABS
+for registrada como tentativa concluída válida, RF2-021 exige nota também nela,
+com fórmula adequada; não entregar uma tentativa válida sem nota silenciosamente.
+Vincular as etapas por ID de comparação e registrar condições equivalentes. A
+introdução deve continuar acessível ao repetir, e cada etapa deve declarar seus
+8 s; ações de repetir/avançar não podem misturar amostras das duas etapas.
+
 ## 10. Incrementos e dependências
 
 | Incremento | Entrega verificável | Dependências / saída |
 |---|---|---|
-| P0 — Contratos e aquisição | Exercício/tentativa, frequência, experimento SDL/Qt | Resolver propriedade/estabilidade da leitura e proteger regressões. |
-| P1 — Calibração | Assistente, deadzone, máximo de treino, SQLite, restauração | CA2-001; preservar quatro comandos e carregar perfil após reinício. |
-| P2 — Exercícios básicos | Catálogo, contrato evoluído, legado, níveis 1–2 e repetição | CA2-002/008; E01/E04; janelas validadas. |
-| P3 — Gráfico e resultado | Widget, cursor, tolerância e comparação | CA2-003; aquisição independente do desenho. |
+| P0 — Contratos e aquisição | Exercício/tentativa, frequência, experimento SDL/Qt | Resolver propriedade/estabilidade, timestamps e fronteiras de janelas; proteger regressões. |
+| P1 — Calibração | Assistente, deadzone, máximo de treino, SQLite, restauração | P0; CA2-001; preservar quatro comandos e carregar perfil após reinício. |
+| P2 — Exercícios básicos | Catálogo, legado, níveis 1–2, nota/subnotas, feedback, persistência e repetição | P0/P1; CA2-002/008; E01/E04/E05 para sustentação; janelas validadas. |
+| P3 — Gráfico e resultado | Widget, cursor, tolerância e comparação | P2; CA2-003; repetir medição com gráfico real. |
 | P4 — Métricas e níveis 3–6 | Pontuação, feedback, patamares e liberação | CA2-005; E04/E05 por família; sintéticos antes do G29. |
 | P5 — Assistência e curva | Três modos, mapa + gráfico, nível 7 | CA2-004/006; E02/E03 e alvos da curva fechados. |
 | P6 — ABS didático | Duas etapas, modelo, eventos e métricas | CA2-007; E06/E07 e recuperação definidos. |
@@ -287,8 +427,12 @@ continuam sujeitos a E06/E07.
 
 Commits pequenos por incremento; changelog/evidências atualizados ao entregar
 comportamento. Tasks detalhará dependências e critérios individuais após o gate
-deste plano. P2 pode usar métricas mínimas para CA2-002; a consolidação de todas
-as famílias de pontuação ocorre em P4.
+deste plano. Ajuste da revisão: P2 entrega a família de sustentação completa,
+pois RF2-021/022/024 e CA2-002 já se aplicam aos níveis 1–2. P4 amplia o motor
+para patamares/liberação; P5/P6 acrescentam curva/ABS. Isso evita um resultado
+provisório que exiba nota geral sem todas as métricas exigidas para a família.
+P4 depende de P2/P3; P5 de P3/P4; P6 da infraestrutura anterior; P7 integra todas
+as entregas. Não marcar um requisito como entregue por existir apenas seu contrato.
 
 ## 11. Rastreabilidade e validação
 
@@ -297,7 +441,7 @@ as famílias de pontuação ocorre em P4.
 | RF2-001–006; CA2-001 | Calibração e SQLite | Inversão, ruído, limites inválidos, corrupção/falha de escrita, restauração e reinício real. |
 | RF2-007–012; CA2-008 | Catálogo, sessão e gravador | Todos os JSONs, legado, duração, cancelar/desconectar, repetir/avançar e 30 repetições sem resíduo. |
 | RF2-013–020; CA2-003/006 | Gráfico e mapa | Guiado ao vivo, resultado completo, valores/tempos legíveis, padrões além de cor, marcadores sem sobreposição. |
-| RF2-021–026; CA2-002/005 | Pontuação e feedback | Perfeito, dentro/fora da faixa, overshoot, atraso, liberação abrupta, ruído, reaplicação, timestamps irregulares, empate e determinismo. |
+| RF2-021–026; CA2-002/005 | Pontuação e feedback | Perfeito, dentro/fora da faixa, overshoot, atraso, liberação abrupta, ruído, reaplicação, timestamps irregulares, bordas sem influência anterior, empate, pesos zero e replay de snapshots. |
 | Modos da seção 9; CA2-004 | Política visual e Qt | Avaliação sem medidores/números/curvas; Memória na variante escolhida; dados e fórmula iguais entre modos. |
 | RF2-027–033; CA2-007 | ABS, eventos e gráfico | Acima/igual/abaixo de 80%, recuperação, travamento até o fim, múltiplos eventos, ABS, superfície variável e rótulos. |
 | RNF2-001/007/008/009 | App e empacotamento | Offline, widget reutilizável, replay idêntico, termos adequados e executáveis separados. |
@@ -314,10 +458,23 @@ escala, driver, perfil, cenário/fórmula, modo e medidas. Computador de referê
 ainda será registrado na validação; não foi presumido a partir desta máquina.
 Persistência pode ser assíncrona, com estado de salvamento/falha visível.
 
-Nota editorial: CA2-004 se chama “Treino de memória”, mas verifica Avaliação.
-Usar seu enunciado e validar Memória separadamente após E02; corrigir título em
-revisão documental sem mudar comportamento. Testes adicionais cobrem desempenho
-e falhas além dos oito exemplos de aceitação.
+Medir leituras reais por janela de 1 s, intervalos p50/p95/p99/máximo, atrasos de
+entrega, duração de desenho e quadros efetivamente desenhados; contar callbacks
+do timer não mede FPS. Medir os 500 ms desde o fim programado da execução até a
+primeira apresentação do resultado completo, incluindo entrega final, snapshot,
+cálculo e desenho. Escrita assíncrona não pode atrasar ou apagar esse resultado.
+Registrar consumo de memória, threads, timers, conexões/sinais e salvamentos
+pendentes ao longo das 30 repetições; crescimento persistente precisa explicação.
+
+A matriz acima cobre RF2-001 a RF2-033, RNF2-001 a RNF2-009, CA2-001 a CA2-008
+e os modos da seção 9. Complementos explícitos: dados por nível/pré-requisitos
+recomendados (seção 11 da Spec → catálogo, E01/P2), legado (seção 4 → P0/P2/P5)
+e diagnóstico independente (decisão 16.7 → regressão e dois builds em P7).
+Rastreabilidade é planejamento, não evidência de que o requisito já foi atendido.
+
+Nota editorial resolvida nesta revisão: CA2-004 agora se chama “Modo Avaliação”,
+preservando seu enunciado. Validar Memória separadamente após E02. Testes adicionais
+cobrem desempenho e falhas além dos oito exemplos de aceitação.
 
 ## 12. Builds, branch e release
 
@@ -359,7 +516,34 @@ Pronto para revisão quando:
 - riscos pendentes não forem apresentados como resolvidos;
 - responsável aceitar o plano para decomposição em Tasks.
 
-**Situação:** inspeção documental concluída; hipóteses/validações definidas;
-nenhum experimento, teste novo, benchmark ou build novo executado.
+**Situação:** plano reauditado, ainda Em revisão e sem aprovação deste gate.
+As hipóteses E01–E07 e as decisões técnicas de aquisição/fronteiras têm pontos de
+validação definidos; não são parâmetros finais aprovados. Nenhum experimento
+de aquisição, teste novo, benchmark ou build novo foi executado. A suíte existente
+foi executada conforme o registro abaixo.
 **Próxima transição:** aprovação do Plan → tasks.md → implementação incremental
 e validação, mantendo merge pendente de autorização explícita.
+
+## 14. Registro da revisão preparatória — 2026-09-02
+
+- Checkout inicialmente limpo na main; fetch de origin concluído e checkout da
+  feature/002-brake-control configurado para acompanhar a remota, sem descartar
+  alterações ou reescrever histórico. Nome de autoria preservado: ezkcampos;
+  e-mail local configurado: camposezek@gmail.com.
+- Lidos README, CONTRIBUTING, changelog, pyproject, Spec/Plan/Tasks/pesquisa 001,
+  Spec/Plan 002, os três workflows, os dois entrypoints, código e testes existentes.
+  Nenhum AGENTS.md encontrado na árvore versionada ou nos diretórios ancestrais.
+- Confrontados o fluxo de SDL/Pygame/Qt com as fontes oficiais vinculadas na
+  seção 3.1 e as evidências históricas com a pesquisa 001. A captura de 6.908
+  amostras não está versionada; seus números são registro anterior, não medição
+  reproduzida nesta revisão nem comprovação de worker no treinador.
+- Ambiente isolado .venv, ignorado pelo Git: Python 3.12.4 e pytest 9.1.1,
+  compatíveis com pyproject.toml. Instalado somente pytest e suas dependências;
+  não foi instalado o stack de UI/build. Comando: `.venv/Scripts/python.exe -m pytest`.
+  Resultado: **24 testes passaram em 0,11 s**. A suíte atual cobre domínio e
+  gravador; não exercita Qt, SDL/G29, SQLite novo, pontuação ou interface.
+- Documentação revista; código, cenário legado, workflows e versão 0.1.0
+  preservados. Nenhum tasks.md da Spec 002 criado. Builds Actions, teste dos
+  executáveis, resoluções, 30 repetições e G29 permanecem por executar na fase
+  correspondente. Pendências T030/T031 e demais gates da Spec 001 não foram
+  marcados como concluídos por esta revisão.

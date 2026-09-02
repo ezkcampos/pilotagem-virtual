@@ -39,9 +39,10 @@ O usuário precisa:
 ## 3. Relação com a Especificação 001
 
 Esta especificação estende o MVP definido na Spec 001 e não o substitui. Ela entrega
-uma progressão anterior aos exercícios de curva e reutiliza a aquisição a 120 Hz, a
-normalização observada no G29, a máquina de estados e o formato de cenários já
-implementados.
+uma progressão anterior aos exercícios de curva e reutiliza a base de aquisição,
+com alvo de 120 Hz, a normalização observada no G29, a máquina de estados e o
+formato de cenários já implementados. A frequência efetiva do treinador nesta
+versão deverá ser medida conforme RNF2-002; o alvo não é uma medição concluída.
 
 A versão 0.2.0 deverá também concluir a calibração personalizada necessária para que
 os percentuais exibidos sejam consistentes para o dispositivo do usuário.
@@ -337,7 +338,7 @@ máxima, independentemente das amostras anteriores à janela de sustentação.
 **então** o usuário deve visualizar alvo, tolerância, execução e cursor temporal sem
 interromper a aquisição das amostras.
 
-### CA2-004 — Treino de memória
+### CA2-004 — Modo Avaliação
 
 **Dado** o modo Avaliação,
 **quando** a tentativa estiver em andamento,
@@ -435,3 +436,10 @@ O escopo, os requisitos e os critérios de aceitação permanecem preservados.
 O plano técnico está em [plan.md](plan.md), com status próprio de revisão.
 Esta aprovação não representa validação de implementação, autorização de merge
 na main nem gate de release da versão 0.2.0.
+
+### Revisão editorial de 2026-09-02
+
+O título de CA2-004 foi corrigido para corresponder ao modo Avaliação descrito
+em seu enunciado, que permanece inalterado. A seção 3 distingue o alvo de 120 Hz
+da frequência efetivamente medida. Nenhum requisito ou decisão de produto foi
+alterado por essas correções.
