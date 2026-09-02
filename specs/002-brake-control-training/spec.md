@@ -1,6 +1,6 @@
 # Especificação 002 — Fundamentos do freio e telemetria visual
 
-**Status:** Em revisão
+**Status:** Aprovada para planejamento técnico
 **Fase SDD:** Especificação
 **Versão-alvo:** 0.2.0
 **Spec base:** [Especificação 001](../001-trail-braking-mvp/spec.md)
@@ -424,3 +424,14 @@ A Spec 002 estará aprovada para planejamento técnico quando:
   adiadas para experimentação no plano técnico;
 - os critérios de aceitação forem considerados suficientes para validar a versão
   0.2.0.
+
+## 19. Registro de aprovação do quality gate
+
+Em 2026-09-02, o responsável pelo projeto aprovou o quality gate desta
+especificação e autorizou a fase Plan. As sete decisões abertas da seção 17
+foram explicitamente adiadas para experimentação e definição no plano técnico.
+O escopo, os requisitos e os critérios de aceitação permanecem preservados.
+
+O plano técnico está em [plan.md](plan.md), com status próprio de revisão.
+Esta aprovação não representa validação de implementação, autorização de merge
+na main nem gate de release da versão 0.2.0.
