@@ -107,5 +107,12 @@
   e estado inicial com quatro eixos zerados exigem investigação; comparação
   entre configurações e ciclo de desconexão/fechamento continuam pendentes.
 
+- P0 / T016, segundo lote (2026-09-03): completada a comparação básica das quatro
+  configurações, com seis capturas no total. Principal sem gráfico: 118,5 Hz;
+  worker sem/com gráfico: 118,2/116,1 Hz, mínimo por segundo 118/113. Worker é o
+  candidato preferido, ainda sem integração no treinador. Estado inicial zerado
+  também ocorreu no worker; prontidão, redimensionamento e ciclo de vida mantêm
+  o gate aberto. Análise e hashes no mesmo relatório/resumo de P0.
+
 - T080: dois builds Windows de 1cb48e8 concluídos; pacote do treinador executado
   com fonte falsa, SHA conferido no relatório. Artefatos e limitações em [p0-evidence.md](p0-evidence.md).

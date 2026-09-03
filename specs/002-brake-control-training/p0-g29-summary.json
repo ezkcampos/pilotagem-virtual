@@ -3,10 +3,11 @@
   "analysis_date": "2026-09-03",
   "source": "User-provided physical G29 captures; original JSON reports preserved in build/actions/trainer/package",
   "notes": [
-    "Three repetitions of main thread with drawing; no architecture comparison yet.",
+    "Six runs cover all four configurations: three main/drawing repetitions and one each main/no drawing, worker/no drawing and worker/drawing. No resize events recorded.",
     "Rates measure host polling, not independent sensor updates.",
     "Initial all-zero axes are retained in all statistics; cause unconfirmed.",
-    "Brake percentages use legacy inversion, not personalized calibration."
+    "Brake percentages use legacy inversion, not personalized calibration.",
+    "Worker with drawing is the preferred candidate from this experiment; startup state and lifecycle validation remain open before integration."
   ],
   "runs": [
     {
@@ -388,6 +389,390 @@
       "brake_uncalibrated_percent": {
         "min": 0.00152587890625,
         "max": 85.15625
+      }
+    },
+    {
+      "file": "build/actions/trainer/package/principal-sem-grafico.json",
+      "sha256": "2121952756e44191619b44877eaf0a57bce096e6afdb268ab26b92dbb9a5143a",
+      "config": {
+        "source": "g29",
+        "context": "main",
+        "duration_seconds": 10,
+        "drawing": false,
+        "device_id": null
+      },
+      "reason": "completed",
+      "error": null,
+      "build": {
+        "commit": "1cb48e8a8b3e6f561f2afc7b03118ddfc98fe7db",
+        "run_url": "https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33696545677"
+      },
+      "metadata": {
+        "owner_thread": 27100,
+        "source": "g29",
+        "requested_interval_ms": 8,
+        "target_hz": 120,
+        "device": {
+          "device_id": "03004ed76d0400004fc2000000000000:0",
+          "name": "Logitech G HUB G29 Driving Force Racing Wheel USB",
+          "guid": "03004ed76d0400004fc2000000000000",
+          "axis_count": 4,
+          "button_count": 25,
+          "hat_count": 1,
+          "instance_id": 0
+        },
+        "pygame": "2.6.1",
+        "sdl": [
+          2,
+          28,
+          4
+        ],
+        "display_initialized": true,
+        "has_sdl_window": false
+      },
+      "runtime": {
+        "python": "3.12.10",
+        "platform": "Windows-11-10.0.26200-SP0"
+      },
+      "ui": {
+        "width": 1920,
+        "height": 1061,
+        "device_pixel_ratio": 1.0,
+        "qt_platform": "windows",
+        "drawn_frames": 0,
+        "drawn_fps": 0.0,
+        "delivery_p95_ms": 0.04165,
+        "paint_p95_ms": null,
+        "resize_events": [],
+        "main_thread": 27100
+      },
+      "acquisition": {
+        "sample_count": 1185,
+        "observed_hz": 118.5,
+        "per_second": [
+          119,
+          118,
+          119,
+          118,
+          118,
+          119,
+          118,
+          119,
+          118,
+          119
+        ],
+        "interval_p50_ms": 8.4958,
+        "interval_p95_ms": 8.973655,
+        "interval_p99_ms": 9.256087000000003,
+        "max_interval_ms": 9.5221,
+        "leading_gap_ms": 2.0342,
+        "trailing_gap_ms": 2.6967,
+        "issues": [],
+        "policy_version": "acquisition-candidate-v1"
+      },
+      "origin_ns": 6107547624200,
+      "finished_ns": 6117553480400,
+      "duration_ns": 10000000000,
+      "checks": {
+        "summary_matches_raw": true,
+        "strictly_increasing": true,
+        "all_samples_inside": true,
+        "all_connected": true,
+        "axes_finite_and_in_range": true,
+        "end_context_outside": true,
+        "owner_matches_context": true
+      },
+      "axes": [
+        {
+          "index": 0,
+          "raw_min": -0.01513671875,
+          "raw_max": 0.0,
+          "distinct_values": 2,
+          "changes": 1
+        },
+        {
+          "index": 1,
+          "raw_min": 0.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 2,
+          "changes": 1
+        },
+        {
+          "index": 2,
+          "raw_min": -1.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 201,
+          "changes": 534
+        },
+        {
+          "index": 3,
+          "raw_min": 0.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 2,
+          "changes": 1
+        }
+      ],
+      "initial_all_axes_zero_count": 273,
+      "first_nonzero_relative_ms": 2306.1626,
+      "brake_uncalibrated_percent": {
+        "min": 0.00152587890625,
+        "max": 100.0
+      }
+    },
+    {
+      "file": "build/actions/trainer/package/worker-sem-grafico.json",
+      "sha256": "7ae956976bde4349980be8e8f059622528fec01235823ef7e2cf472da83ec073",
+      "config": {
+        "source": "g29",
+        "context": "worker",
+        "duration_seconds": 10,
+        "drawing": false,
+        "device_id": null
+      },
+      "reason": "completed",
+      "error": null,
+      "build": {
+        "commit": "1cb48e8a8b3e6f561f2afc7b03118ddfc98fe7db",
+        "run_url": "https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33696545677"
+      },
+      "metadata": {
+        "owner_thread": 29160,
+        "source": "g29",
+        "requested_interval_ms": 8,
+        "target_hz": 120,
+        "device": {
+          "device_id": "03004ed76d0400004fc2000000000000:1",
+          "name": "Logitech G HUB G29 Driving Force Racing Wheel USB",
+          "guid": "03004ed76d0400004fc2000000000000",
+          "axis_count": 4,
+          "button_count": 25,
+          "hat_count": 1,
+          "instance_id": 1
+        },
+        "pygame": "2.6.1",
+        "sdl": [
+          2,
+          28,
+          4
+        ],
+        "display_initialized": true,
+        "has_sdl_window": false
+      },
+      "runtime": {
+        "python": "3.12.10",
+        "platform": "Windows-11-10.0.26200-SP0"
+      },
+      "ui": {
+        "width": 1920,
+        "height": 1061,
+        "device_pixel_ratio": 1.0,
+        "qt_platform": "windows",
+        "drawn_frames": 0,
+        "drawn_fps": 0.0,
+        "delivery_p95_ms": 0.1924849999999997,
+        "paint_p95_ms": null,
+        "resize_events": [],
+        "main_thread": 27100
+      },
+      "acquisition": {
+        "sample_count": 1182,
+        "observed_hz": 118.2,
+        "per_second": [
+          118,
+          118,
+          118,
+          118,
+          118,
+          119,
+          119,
+          118,
+          118,
+          118
+        ],
+        "interval_p50_ms": 8.5047,
+        "interval_p95_ms": 8.9933,
+        "interval_p99_ms": 9.04484,
+        "max_interval_ms": 9.1831,
+        "leading_gap_ms": 0.1859,
+        "trailing_gap_ms": 7.3794,
+        "issues": [],
+        "policy_version": "acquisition-candidate-v1"
+      },
+      "origin_ns": 6146487062900,
+      "finished_ns": 6156488221300,
+      "duration_ns": 10000000000,
+      "checks": {
+        "summary_matches_raw": true,
+        "strictly_increasing": true,
+        "all_samples_inside": true,
+        "all_connected": true,
+        "axes_finite_and_in_range": true,
+        "end_context_outside": true,
+        "owner_matches_context": true
+      },
+      "axes": [
+        {
+          "index": 0,
+          "raw_min": -0.01513671875,
+          "raw_max": 0.0,
+          "distinct_values": 2,
+          "changes": 1
+        },
+        {
+          "index": 1,
+          "raw_min": 0.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 2,
+          "changes": 1
+        },
+        {
+          "index": 2,
+          "raw_min": -1.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 183,
+          "changes": 513
+        },
+        {
+          "index": 3,
+          "raw_min": 0.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 2,
+          "changes": 1
+        }
+      ],
+      "initial_all_axes_zero_count": 209,
+      "first_nonzero_relative_ms": 1779.4816,
+      "brake_uncalibrated_percent": {
+        "min": 0.00152587890625,
+        "max": 100.0
+      }
+    },
+    {
+      "file": "build/actions/trainer/package/worker-com-grafico.json",
+      "sha256": "e6bab89aa0b14e0bce5c12c3e4ef8015bbf056329590f69b6c887a223de6b257",
+      "config": {
+        "source": "g29",
+        "context": "worker",
+        "duration_seconds": 10,
+        "drawing": true,
+        "device_id": null
+      },
+      "reason": "completed",
+      "error": null,
+      "build": {
+        "commit": "1cb48e8a8b3e6f561f2afc7b03118ddfc98fe7db",
+        "run_url": "https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33696545677"
+      },
+      "metadata": {
+        "owner_thread": 416,
+        "source": "g29",
+        "requested_interval_ms": 8,
+        "target_hz": 120,
+        "device": {
+          "device_id": "03004ed76d0400004fc2000000000000:2",
+          "name": "Logitech G HUB G29 Driving Force Racing Wheel USB",
+          "guid": "03004ed76d0400004fc2000000000000",
+          "axis_count": 4,
+          "button_count": 25,
+          "hat_count": 1,
+          "instance_id": 2
+        },
+        "pygame": "2.6.1",
+        "sdl": [
+          2,
+          28,
+          4
+        ],
+        "display_initialized": true,
+        "has_sdl_window": false
+      },
+      "runtime": {
+        "python": "3.12.10",
+        "platform": "Windows-11-10.0.26200-SP0"
+      },
+      "ui": {
+        "width": 1920,
+        "height": 1061,
+        "device_pixel_ratio": 1.0,
+        "qt_platform": "windows",
+        "drawn_frames": 589,
+        "drawn_fps": 58.9,
+        "delivery_p95_ms": 8.348199999999999,
+        "paint_p95_ms": 7.847425,
+        "resize_events": [],
+        "main_thread": 27100
+      },
+      "acquisition": {
+        "sample_count": 1161,
+        "observed_hz": 116.1,
+        "per_second": [
+          118,
+          115,
+          118,
+          117,
+          117,
+          117,
+          116,
+          115,
+          115,
+          113
+        ],
+        "interval_p50_ms": 8.49515,
+        "interval_p95_ms": 9.711539999999998,
+        "interval_p99_ms": 14.714828000000018,
+        "max_interval_ms": 22.2505,
+        "leading_gap_ms": 0.2927,
+        "trailing_gap_ms": 7.0723,
+        "issues": [],
+        "policy_version": "acquisition-candidate-v1"
+      },
+      "origin_ns": 6178444674000,
+      "finished_ns": 6188445925300,
+      "duration_ns": 10000000000,
+      "checks": {
+        "summary_matches_raw": true,
+        "strictly_increasing": true,
+        "all_samples_inside": true,
+        "all_connected": true,
+        "axes_finite_and_in_range": true,
+        "end_context_outside": true,
+        "owner_matches_context": true
+      },
+      "axes": [
+        {
+          "index": 0,
+          "raw_min": -0.01513671875,
+          "raw_max": 0.0,
+          "distinct_values": 2,
+          "changes": 1
+        },
+        {
+          "index": 1,
+          "raw_min": 0.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 2,
+          "changes": 1
+        },
+        {
+          "index": 2,
+          "raw_min": -0.734375,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 172,
+          "changes": 480
+        },
+        {
+          "index": 3,
+          "raw_min": 0.0,
+          "raw_max": 0.999969482421875,
+          "distinct_values": 2,
+          "changes": 1
+        }
+      ],
+      "initial_all_axes_zero_count": 75,
+      "first_nonzero_relative_ms": 644.2502,
+      "brake_uncalibrated_percent": {
+        "min": 0.00152587890625,
+        "max": 86.71875
       }
     }
   ]

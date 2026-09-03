@@ -64,7 +64,7 @@ Para repetir offscreen, definir `$env:QT_QPA_PLATFORM = 'offscreen'` nesse proce
 Usar `--no-drawing` para retirar carga gráfica e `--size 2560x1080` para ultrawide.
 As medições físicas precisam usar o plugin Windows e a janela visível.
 
-## Medições físicas recebidas em 2026-09-03
+## Medições físicas recebidas em 2026-09-03 — primeiro lote
 
 Três JSONs completos fornecidos pelo usuário, preservados em
 `build/actions/trainer/package/`. O [resumo auditável](p0-g29-summary.json)
@@ -114,11 +114,66 @@ Pontos para investigação antes de concluir T016:
 - Não há redimensionamentos registrados, cancelamentos ou desconexões nessas
   capturas. IDs SDL sucessivos não comprovam desconexão/reconexão física.
 
-Decisão: evidência real útil de captura do freio e repetição na thread principal;
+Decisão após o primeiro lote: evidência real útil de captura do freio e repetição na thread principal;
 manter a arquitetura atual enquanto a comparação não está completa. Ainda faltam
 principal sem gráfico, worker sem/com gráfico, carga de redimensionamento e as
 operações de cancelar/desconectar/reconectar/fechar, além da confirmação do treino
 legado. T016 permanece aberta e não libera P1 por estes três arquivos isoladamente.
+
+## Segundo lote — comparação das quatro configurações
+
+Recebidos `principal-sem-grafico.json`, `worker-sem-grafico.json` e
+`worker-com-grafico.json` na mesma pasta. O [resumo](p0-g29-summary.json) agora
+inclui os seis relatórios com hashes dos originais. Os três novos usam o mesmo
+build 1cb48e8, G29, versões de runtime, janela 1920×1061 e escala 1 do primeiro
+lote. Todos completaram 10 s sem erro; timestamps, faixa/finidade dos eixos,
+conexão e contexto final foram conferidos. Métricas recalculadas coincidem
+com as exportadas, e os IDs de thread confirmam os contextos escolhidos.
+
+| Configuração | Leituras | Média (Hz) | Menor contagem em 1 s | Intervalo p95 / máximo | FPS |
+|---|---:|---:|---:|---|---:|
+| Principal / sem gráfico | 1.185 | 118,5 | 118 | 8,974 / 9,522 ms | — |
+| Worker / sem gráfico | 1.182 | 118,2 | 118 | 8,993 / 9,183 ms | — |
+| Worker / com gráfico | 1.161 | 116,1 | 113 | 9,712 / 22,251 ms | 58,9 |
+
+Sem gráfico, ambas as threads mantiveram 118–119 leituras em cada segundo.
+Com gráfico, o worker ficou entre 113 e 118; no primeiro lote a thread
+principal variou de 60 a 116. O atraso de entrega à interface no worker com
+gráfico teve p95 de 8,348 ms. Isso é distinto do intervalo entre leituras;
+não significa latência de resultado nem latência ponta a ponta do sensor.
+
+Interpretação: os resultados favorecem o worker para isolar a aquisição da
+carga visual. A redução de frequência com desenho foi pequena no worker, e a
+thread principal recuperou a regularidade sem desenho. Isso reforça a hipótese
+de contenção pela renderização, sem isolar seu custo exato ou provar estabilidade
+sob toda carga. Houve apenas uma captura por nova configuração, em momentos
+diferentes. As médias ficaram próximas, mas abaixo do alvo de 120 Hz; todas as
+contagens por segundo superaram o mínimo de 60 nas três novas capturas.
+
+O estado inicial zerado persistiu nas duas threads:
+
+| Arquivo | Amostras iniciais com quatro eixos zero | Primeira leitura com algum eixo não nulo |
+|---|---:|---:|
+| `principal-sem-grafico.json` | 273 | 2.306,163 ms |
+| `worker-sem-grafico.json` | 209 | 1.779,482 ms |
+| `worker-com-grafico.json` | 75 | 644,250 ms |
+
+Depois, o freio apresentou 201, 183 e 172 valores distintos, respectivamente.
+O padrão inicial não é exclusivo do gráfico ou da thread principal e exige
+investigar quando o backend disponibiliza o primeiro estado físico. O código
+atual aceita esses zeros finitos como leitura normal e não registra um estado
+de prontidão separado. Não há evidência suficiente para definir a causa ou
+tratar todo zero como inválido: zero também pode ser uma posição legítima.
+Os trechos foram preservados e continuam incluídos nas métricas de polling.
+
+**Decisão atual:** selecionar o worker como candidato preferido para a próxima
+etapa de validação. A comparação básica das quatro configurações está registrada;
+não é necessário repetir as mesmas capturas para esse objetivo. A integração
+no treinador permanece pendente de prontidão inicial e ciclo de vida. Nenhum dos
+seis relatórios registra redimensionamento, cancelamento ou desconexão; também
+faltam confirmação de reconexão/fechamento e regressão manual do treino legado.
+T016 permanece aberta, com evidência comparativa de desempenho concluída neste
+conjunto e validação operacional ainda pendente. P1 não foi iniciado.
 
 ## Fronteiras de janela — T015 ainda aberta
 
@@ -162,7 +217,8 @@ do pacote, execução do worker e fechamento, não o G29 nem o fluxo completo de
 treino real. O binário de diagnóstico foi conferido no pacote, mas não teve
 interação física validada nesta etapa. Retenção dos artefatos: 14 dias.
 
-T016 recebeu três repetições físicas da mesma configuração em 2026-09-03;
-depende das demais configurações e das operações de
-cancelar/desconectar/reconectar/fechar; P1 não foi iniciado. Não houve merge,
+T016 recebeu seis capturas físicas cobrindo as quatro configurações em 2026-09-03;
+worker é o candidato preferido pelos resultados. Prontidão inicial,
+redimensionamento e operações de cancelar/desconectar/reconectar/fechar
+permanecem pendentes; P1 não foi iniciado. Não houve merge,
 mudança de versão, tag ou release. E01–E07 continuam experimentais.

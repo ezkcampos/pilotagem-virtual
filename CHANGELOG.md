@@ -26,6 +26,10 @@ na série inicial `0.x`.
 - Análise de três capturas físicas do G29 em 2026-09-03: métricas recalculadas,
   integridade temporal e hashes dos originais registrados; evidência parcial da
   thread principal com gráfico, com queda de taxa e estado inicial a investigar.
+- Segundo lote físico de P0 completa a comparação das quatro configurações:
+  worker com gráfico observou 116,1 Hz e 58,9 FPS, tornando-se candidato preferido.
+  Integração permanece pendente da investigação do estado inicial e da validação
+  operacional; o treinador continua usando a thread principal.
 
 - Spec 002 de fundamentos do freio e telemetria visual, com alvo na versão 0.2.0.
 - Registro da aprovação do quality gate da Spec 002 em 2026-09-02, com sete decisões
