@@ -9,13 +9,19 @@ import pytest
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pilotagem_virtual.acquisition_probe import ProbeConfig, ProbeWindow
+from pilotagem_virtual.acquisition_probe import ProbeConfig, ProbeSampler, ProbeWindow
 from pilotagem_virtual.input.device import DeviceInfo, RawInputState
 
 
 @pytest.fixture(scope="module")
 def app():
     return QApplication.instance() or QApplication([])
+
+
+@pytest.fixture(autouse=True)
+def skip_preparation_in_lifecycle_tests(monkeypatch):
+    # Dedicated countdown tests below use the real three-second preparation.
+    monkeypatch.setattr("pilotagem_virtual.acquisition_probe.COUNTDOWN_SECONDS", 0)
 
 
 def wait_finished(window):
@@ -237,4 +243,99 @@ def test_resize_is_recorded_during_worker_capture(app, tmp_path):
     wait_finished(window)
     assert window.report["reason"] == "completed"
     assert any(e["width"] == actual_width and e["height"] == 900 for e in window.report["ui"]["resize_events"])
+    window.close()
+
+
+@pytest.mark.parametrize("context,drawing", [("main", True), ("worker", False)])
+def test_visible_three_second_countdown_precedes_full_capture(app, monkeypatch, context, drawing):
+    monkeypatch.setattr("pilotagem_virtual.acquisition_probe.COUNTDOWN_SECONDS", 3)
+    window = ProbeWindow(ProbeConfig(context=context, duration_seconds=.08, drawing=drawing))
+    window.show()
+    observed = []
+    window.start_run()
+    window.worker.countdown_changed.connect(lambda value: observed.append((value, window.countdown_label.isVisible())))
+    wait_finished(window)
+    report = window.report
+    assert report["reason"] == "completed"
+    assert observed == [(3, True), (2, True), (1, True), (0, True)]
+    displays = report["ui"]["countdown_displays"]
+    assert [d["value"] for d in displays] == [3, 2, 1, 0]
+    assert report["countdown"]["started_ns"] >= displays[0]["timestamp_ns"]
+    assert report["origin_ns"] - report["countdown"]["started_ns"] >= 3_000_000_000
+    assert report["duration_ns"] == 80_000_000
+    assert report["samples"][0]["timestamp_ns"] == report["origin_ns"]
+    assert all(s["timestamp_ns"] < report["origin_ns"] for s in report["countdown"]["samples"])
+    assert report["acquisition"]["sample_count"] == len(report["samples"])
+    assert window.countdown_label.text() == "CONCLUÍDO"
+    window.close()
+
+
+def test_countdown_waits_for_gui_ack_and_uses_real_poll_boundaries(app, monkeypatch):
+    monkeypatch.setattr("pilotagem_virtual.acquisition_probe.COUNTDOWN_SECONDS", 3)
+    now = 10_000_000_000
+    sampler = ProbeSampler(ProbeConfig(), clock_ns=lambda: now)
+    displayed = []
+    reports = []
+    sampler.countdown_changed.connect(displayed.append)
+    sampler.finished.connect(reports.append)
+    sampler.start()
+    sampler._poll()
+    # Even a GUI delayed for four seconds must get three full seconds after ack.
+    now += 4_000_000_000
+    sampler._poll()
+    assert sampler.origin_ns is None and displayed == [3]
+    sampler.begin_countdown()
+    for elapsed, expected in [(999_999_999, 3), (1_000_000_000, 2), (2_000_000_000, 1), (2_999_999_999, 1)]:
+        now = sampler.countdown_started_ns + elapsed
+        sampler._poll()
+        assert displayed[-1] == expected and sampler.origin_ns is None
+    now += 1
+    sampler._poll()
+    assert displayed == [3, 2, 1, 0]
+    assert sampler.origin_ns == now
+    assert [s.timestamp_ns for s in sampler.readings] == [now]
+    sampler.stop()
+    assert reports[0]["initialization"]["wait_ms"] == 0
+    sampler.deleteLater()
+
+
+@pytest.mark.parametrize("context", ["main", "worker"])
+def test_cancel_and_close_during_countdown_restart_without_attempt(app, monkeypatch, tmp_path, context):
+    monkeypatch.setattr("pilotagem_virtual.acquisition_probe.COUNTDOWN_SECONDS", 3)
+    window = ProbeWindow(ProbeConfig(context=context), output_dir=tmp_path)
+    window.show()
+    for reason in ("cancelled", "application_closed"):
+        window.start_run()
+        deadline = time.monotonic() + 2
+        while window.countdown_label.text() != "3":
+            assert time.monotonic() < deadline
+            QTest.qWait(5)
+        if reason == "cancelled":
+            window.stop_button.click()
+        else:
+            window.close()
+        wait_finished(window)
+        assert window.report["reason"] == reason
+        assert window.report["origin_ns"] is None and window.report["acquisition"] is None
+        assert not window.report["samples"]
+        assert window.report["countdown"]["samples"]
+        assert [d["value"] for d in window.report["ui"]["countdown_displays"]] == [3]
+    assert len(list(tmp_path.glob("*.json"))) == 2
+    assert not window.isVisible()
+
+
+@pytest.mark.parametrize("context", ["main", "worker"])
+def test_disconnect_during_countdown_preserves_preparation(app, monkeypatch, context):
+    monkeypatch.setattr("pilotagem_virtual.acquisition_probe.COUNTDOWN_SECONDS", 3)
+    instances = install_initializing_backend(monkeypatch, pending=1, disconnect_at=5)
+    window = ProbeWindow(ProbeConfig(source="g29", context=context))
+    window.show()
+    window.start_run()
+    wait_finished(window)
+    assert window.report["reason"] == "disconnected"
+    assert window.report["origin_ns"] is None and window.report["acquisition"] is None
+    assert len(window.report["initialization"]["samples"]) == 1
+    assert len(window.report["countdown"]["samples"]) == 3
+    assert not window.report["samples"] and instances[0].closed
+    assert window.countdown_label.text() == "DESCONECTADO"
     window.close()

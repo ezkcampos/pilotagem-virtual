@@ -2,6 +2,9 @@
 
 **Data:** 2026-09-03 · **Status:** implementação para nova validação física
 
+Registro do incremento v2. O [incremento seguinte](p0-countdown.md) acrescenta
+três segundos de preparação visível após prontidão e passa o relatório para v3.
+
 ## Problema observado
 
 Cinco das seis capturas físicas começaram com todos os eixos em zero, durante

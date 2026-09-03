@@ -5,15 +5,17 @@ G29 nem promove o worker ao treinador. Use o pacote do workflow **Build Pilotage
 Virtual Trainer**, confirme o SHA mostrado no relatório e feche o treinador e o
 diagnóstico antes de iniciar cada medição.
 
-## Próxima verificação — build com prontidão e salvamento automático
+## Próxima verificação — build com contagem, prontidão e salvamento automático
 
 A comparação básica das quatro configurações já foi recebida em seis relatórios.
-Agora use o novo build descrito em [p0-readiness.md](p0-readiness.md).
+Agora use o novo build descrito em [p0-countdown.md](p0-countdown.md).
 
 1. Feche o experimento antigo, o treinador e o diagnóstico. Extraia o novo pacote
    inteiro e abra `run-p0-acquisition-probe.bat`. G29/worker já estarão selecionados.
 2. Inicie uma medição com gráfico. Enquanto aparecer “Aguardando primeira leitura”,
-   mova e solte os pedais; os 10 s começam quando a leitura estiver pronta. Durante
+   mova e solte os pedais. Com a leitura pronta, aparece **3 → 2 → 1 → VALENDO**;
+   prepare-se durante a contagem e comece o movimento em **VALENDO**. Só então
+   começam os 10 s de captura. A contagem também aparece sem gráfico. Durante
    a captura, altere o tamanho da janela arrastando uma borda. Se estiver maximizada,
    restaure-a primeiro; mover a janela de lugar não é redimensionar.
 3. Inicie outra medição e clique em **Cancelar**.

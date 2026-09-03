@@ -27,6 +27,7 @@
 | [ ] T015 | Experimento de fronteiras de janela | T011 | RF2-026, CA2-002: comparar interpolação com/sem amostras externas, timestamps deslocados e lacunas; registrar decisão ou mudança de requisito ainda necessária antes de P2. |
 | [ ] T016 [HW] | Validar aquisição e escolher arquitetura | T012/T014, builds Windows | G29: 10 s sem/com desenho, redimensionar, cancelar, desconectar/reconectar e fechar; registrar PC, driver, SHA, taxas/lacunas e decisão. Não presumir que 8 ms comprova 120 Hz. |
 | [x] T017 | Distinguir prontidão inicial e preservar encerramentos | Evidências parciais de T016 | Flags nativas por eixo, início bloqueado até prontidão, espera preservada em JSON v2, timeout, autosave e fechamento; testes de backend virtual/fluxos em [p0-readiness.md](p0-readiness.md). Confirmação física permanece em T016. |
+| [x] T018 | Preparação visível antes da medição | Solicitação do usuário em 2026-09-03, T017 | 3 → 2 → 1 → VALENDO após prontidão; pelo menos 3 s fora da janela medida, com/sem gráfico, preparação preservada no JSON v3; [evidência](p0-countdown.md). |
 
 ## P1 — Calibração e persistência
 

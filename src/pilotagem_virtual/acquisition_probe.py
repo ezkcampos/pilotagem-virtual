@@ -26,6 +26,9 @@ from pilotagem_virtual.input.device import RawInputState
 from pilotagem_virtual.input.pygame_device import PygameInputBackend
 
 
+COUNTDOWN_SECONDS = 3
+
+
 @dataclass(frozen=True)
 class ProbeConfig:
     source: str = "fake"
@@ -48,16 +51,22 @@ class ProbeSampler(QObject):
     latest = Signal(object)
     finished = Signal(object)
     phase_changed = Signal(str)
+    countdown_changed = Signal(int)
 
-    def __init__(self, config: ProbeConfig):
+    def __init__(self, config: ProbeConfig, clock_ns=time.perf_counter_ns):
         super().__init__()
         self.config = config
+        self.clock_ns = clock_ns
         self.backend = None
         self.device = None
         self.timer = None
         self.run_id = uuid.uuid4().hex
         self.origin_ns = None
         self.opened_ns = None
+        self.ready_ns = None
+        self.countdown_started_ns = None
+        self.countdown_readings: list[RawInputState] = []
+        self._countdown_value = 3
         self.initialization_readings: list[RawInputState] = []
         self.terminal_reading = None
         self.lifecycle = []
@@ -93,7 +102,7 @@ class ProbeSampler(QObject):
                     has_sdl_window=pygame.display.get_surface() is not None,
                     readiness_api="SDL_JoystickGetAxisInitialState",
                 )
-            self.opened_ns = time.perf_counter_ns()
+            self.opened_ns = self.clock_ns()
             self._event("source_opened")
             self.phase_changed.emit("Aguardando primeira leitura do G29. Mova e solte os pedais." if self.device else "Preparando fonte sintética…")
             self.timer = QTimer(self)
@@ -109,7 +118,15 @@ class ProbeSampler(QObject):
         self._finish(reason)
 
     def _event(self, name):
-        self.lifecycle.append({"event": name, "timestamp_ns": time.perf_counter_ns(), "owner_thread": threading.get_ident()})
+        self.lifecycle.append({"event": name, "timestamp_ns": self.clock_ns(), "owner_thread": threading.get_ident()})
+
+    @Slot()
+    def begin_countdown(self):
+        # The GUI acknowledges painting "3" before this clock starts. A queued
+        # ready signal must not consume the user's preparation time.
+        if not self._done and self.ready_ns is not None and self.countdown_started_ns is None:
+            self.countdown_started_ns = self.clock_ns()
+            self._event("countdown_started")
 
     @Slot()
     def _poll(self):
@@ -119,7 +136,7 @@ class ProbeSampler(QObject):
             if self.device is not None:
                 raw = self.device.poll()
             else:
-                now = time.perf_counter_ns()
+                now = self.clock_ns()
                 elapsed = (now - self.opened_ns) / 1e9
                 # A labelled synthetic source; timestamps still measure real polls.
                 brake = .5 + .4 * math.sin(elapsed * 2)
@@ -137,7 +154,7 @@ class ProbeSampler(QObject):
                 self._finish("error", "Timestamp da leitura não é crescente")
                 return
             self._last_timestamp_ns = raw.timestamp_ns
-            if self.origin_ns is None:
+            if self.ready_ns is None:
                 if raw.timestamp_ns - self.opened_ns >= round(self.config.initialization_timeout_seconds * 1e9):
                     self.initialization_readings.append(raw)
                     self._finish("initialization_timeout", "O G29 não confirmou o estado inicial no prazo. Detecte novamente e mova os pedais.")
@@ -146,13 +163,28 @@ class ProbeSampler(QObject):
                     self.initialization_readings.append(raw)
                     self.timer.start(8)
                     return
-                self.origin_ns = raw.timestamp_ns
+                self.ready_ns = raw.timestamp_ns
                 self._event("input_ready")
-                self.phase_changed.emit("Medindo G29 real…" if self.device else "Medindo fonte sintética…")
+                self.countdown_changed.emit(3)
             elif not raw.ready:
                 self.terminal_reading = raw
                 self._finish("error", "Estado inicial do dispositivo deixou de estar disponível")
                 return
+            if self.origin_ns is None:
+                deadline = None if self.countdown_started_ns is None else self.countdown_started_ns + round(COUNTDOWN_SECONDS * 1e9)
+                if deadline is None or raw.timestamp_ns < deadline:
+                    self.countdown_readings.append(raw)
+                    if deadline is not None:
+                        remaining = max(1, min(3, math.ceil((deadline - raw.timestamp_ns) / 1e9)))
+                        if remaining != self._countdown_value:
+                            self._countdown_value = remaining
+                            self.countdown_changed.emit(remaining)
+                    self.timer.start(8)
+                    return
+                self.origin_ns = raw.timestamp_ns
+                self._event("capture_started")
+                self.countdown_changed.emit(0)
+                self.phase_changed.emit("Medindo G29 real…" if self.device else "Medindo fonte sintética…")
             elapsed = raw.timestamp_ns - self.origin_ns
             if elapsed >= round(self.config.duration_seconds * 1e9):
                 self.end_context = raw
@@ -172,7 +204,7 @@ class ProbeSampler(QObject):
         if self._done:
             return
         self._done = True
-        finished_ns = time.perf_counter_ns()
+        finished_ns = self.clock_ns()
         self._event(reason)
         if self.timer:
             self.timer.stop()
@@ -189,16 +221,21 @@ class ProbeSampler(QObject):
         )
         report = summarize_acquisition([r.timestamp_ns - self.origin_ns for r in self.readings], duration) if duration else None
         payload = {
-            "schema_version": "acquisition-probe-v2", "app_version": __version__,
+            "schema_version": "acquisition-probe-v3", "app_version": __version__,
             "run_id": self.run_id,
             "kind": "development-P0", "config": asdict(self.config),
             "reason": reason, "error": error, "metadata": self.metadata,
             "origin_ns": self.origin_ns, "finished_ns": finished_ns,
             "duration_ns": duration, "acquisition": asdict(report) if report else None,
             "initialization": {
-                "opened_ns": self.opened_ns, "ready_ns": self.origin_ns,
-                "wait_ms": ((self.origin_ns or finished_ns) - self.opened_ns) / 1e6 if self.opened_ns else None,
+                "opened_ns": self.opened_ns, "ready_ns": self.ready_ns,
+                "wait_ms": ((self.ready_ns if self.ready_ns is not None else finished_ns) - self.opened_ns) / 1e6 if self.opened_ns is not None else None,
                 "samples": [asdict(r) for r in self.initialization_readings],
+            },
+            "countdown": {
+                "minimum_seconds": COUNTDOWN_SECONDS,
+                "started_ns": self.countdown_started_ns, "capture_started_ns": self.origin_ns,
+                "samples": [asdict(r) for r in self.countdown_readings],
             },
             "lifecycle": self.lifecycle.copy(),
             "terminal_reading": asdict(self.terminal_reading) if self.terminal_reading else None,
@@ -259,6 +296,7 @@ class ProbeCanvas(QWidget):
 
 class ProbeWindow(QMainWindow):
     stop_requested = Signal(str)
+    countdown_displayed = Signal()
     run_finished = Signal(object)
 
     def __init__(self, config: ProbeConfig, output: Path | None = None, automatic=False, output_dir: Path | None = None):
@@ -273,6 +311,7 @@ class ProbeWindow(QMainWindow):
         self._closing = False
         self.deliveries = []
         self.resize_events = []
+        self.countdown_displays = []
         root_widget = QWidget()
         root = QVBoxLayout(root_widget)
         title = QLabel("Experimento P0 · não é uma validação automática do G29")
@@ -303,6 +342,11 @@ class ProbeWindow(QMainWindow):
         for widget in (self.source, self.context, self.drawing, self.start_button, self.stop_button, self.save_button):
             row.addWidget(widget)
         root.addLayout(row)
+        self.countdown_label = QLabel("PRONTO")
+        self.countdown_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.countdown_label.setMinimumHeight(100)
+        self.countdown_label.setStyleSheet("font-size: 56px; font-weight: bold; color: #eee8dc; background: #18201f; padding: 8px;")
+        root.addWidget(self.countdown_label)
         self.canvas = ProbeCanvas()
         root.addWidget(self.canvas, 1)
         self.status = QLabel(f"Relatórios automáticos em: {output_dir}" if output_dir else "Pronto. Cada medição usa timestamps reais; a fonte sintética não mede o G29.")
@@ -325,6 +369,7 @@ class ProbeWindow(QMainWindow):
         self.save_failed = False
         self.deliveries.clear()
         self.resize_events.clear()
+        self.countdown_displays.clear()
         self.canvas.points.clear()
         self.canvas.frames.clear()
         self.canvas.paint_durations.clear()
@@ -333,11 +378,14 @@ class ProbeWindow(QMainWindow):
         self.canvas.duration = self.config.duration_seconds
         self.canvas.recording = True
         self._set_running(True)
-        self.status.setText("Medindo… fonte sintética" if self.config.source == "fake" else "Medindo G29 real…")
+        self.countdown_label.setText("AGUARDE")
+        self.status.setText("Preparando fonte de entrada…")
         self.worker = ProbeSampler(self.config)
         self.worker.latest.connect(self._latest)
         self.worker.finished.connect(self._finished)
         self.worker.phase_changed.connect(self.status.setText)
+        self.worker.countdown_changed.connect(self._show_countdown)
+        self.countdown_displayed.connect(self.worker.begin_countdown)
         self.stop_requested.connect(self.worker.stop)
         if self.config.context == "worker":
             self.thread = QThread(self)
@@ -351,6 +399,16 @@ class ProbeWindow(QMainWindow):
             QTimer.singleShot(0, self.worker.start)
         if self.config.drawing:
             self.render_timer.start()
+
+    @Slot(int)
+    def _show_countdown(self, value):
+        self.countdown_label.setText(str(value) if value else "VALENDO")
+        if value:
+            self.status.setText("Prepare-se. A captura começa depois de 3, 2, 1.")
+        self.countdown_label.repaint()
+        self.countdown_displays.append({"value": value, "timestamp_ns": time.perf_counter_ns()})
+        if value == 3:
+            self.countdown_displayed.emit()
 
     @Slot(object)
     def _latest(self, item):
@@ -374,16 +432,23 @@ class ProbeWindow(QMainWindow):
                 if origin is not None and origin <= stamp < origin + report["duration_ns"]
             ]), "resize_events": self.resize_events.copy(),
             "main_thread": threading.get_ident(),
+            "countdown_displays": self.countdown_displays.copy(),
         }
         build_info = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2])) / "resources/build-info.json"
         report["build"] = json.loads(build_info.read_text(encoding="utf-8-sig")) if build_info.exists() else {"commit": None}
         self.report = report
+        self.countdown_label.setText({
+            "completed": "CONCLUÍDO", "cancelled": "CANCELADO",
+            "application_closed": "ENCERRADO", "disconnected": "DESCONECTADO",
+            "initialization_timeout": "SEM LEITURA",
+        }.get(report["reason"], "INTERROMPIDO"))
         data = report["acquisition"]
         detail = f"{data['sample_count']} leituras · {data['observed_hz']:.1f} Hz · {report['ui']['drawn_fps']:.1f} FPS desenhados" if data else "captura não iniciada"
         self.status.setText(f"{report['reason']} · {detail}. " + (report["error"] or "Relatório disponível."))
         self.canvas.update()
         if self.config.context == "main":
             self.stop_requested.disconnect(self.worker.stop)
+            self.countdown_displayed.disconnect(self.worker.begin_countdown)
             self.worker.deleteLater()
             self.worker = None
             self._ready()

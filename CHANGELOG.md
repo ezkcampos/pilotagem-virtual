@@ -10,6 +10,9 @@ na série inicial `0.x`.
 
 ### Adicionado
 
+- Contagem visível de 3 segundos no experimento P0, após prontidão dos eixos,
+  com sinal “VALENDO” antes dos 10 s de captura, inclusive sem gráfico. JSON v3
+  preserva as leituras de preparação separadas da medição.
 - Confirmação nativa de inicialização dos eixos SDL, com zero legítimo preservado;
   treinador aguarda a primeira leitura antes de permitir uma tentativa.
 - Relatório P0 v2 com espera inicial completa, identidade por execução e ciclo
