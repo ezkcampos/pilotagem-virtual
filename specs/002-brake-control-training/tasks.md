@@ -98,7 +98,14 @@
 
 - P0 / T013–T014: 54 testes aprovados, incluindo 30 ciclos do worker.
   Medições exploratórias, limites e contraexemplo de fronteiras em [p0-evidence.md](p0-evidence.md).
-  T015 e T016 continuam abertas; não há aprovação de aquisição real.
+  T015 e T016 continuam abertas; não há aprovação final de aquisição real.
+
+- P0 / T016 (2026-09-03): três capturas físicas de 10 s, todas em principal/com
+  gráfico, conferidas contra as amostras originais: 85,3–108,2 Hz, mínimo por
+  segundo 60–93 e 58,9 FPS. Evidência parcial em [p0-evidence.md](p0-evidence.md)
+  e [p0-g29-summary.json](p0-g29-summary.json). Queda de taxa ao longo da captura
+  e estado inicial com quatro eixos zerados exigem investigação; comparação
+  entre configurações e ciclo de desconexão/fechamento continuam pendentes.
 
 - T080: dois builds Windows de 1cb48e8 concluídos; pacote do treinador executado
   com fonte falsa, SHA conferido no relatório. Artefatos e limitações em [p0-evidence.md](p0-evidence.md).

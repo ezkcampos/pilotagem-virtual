@@ -23,6 +23,9 @@ na série inicial `0.x`.
   nos relatórios dos builds manuais do treinador.
 - Builds Windows de desenvolvimento P0 para treinador e diagnóstico (commit
   1cb48e8), com [evidências e roteiro de teste](specs/002-brake-control-training/p0-evidence.md).
+- Análise de três capturas físicas do G29 em 2026-09-03: métricas recalculadas,
+  integridade temporal e hashes dos originais registrados; evidência parcial da
+  thread principal com gráfico, com queda de taxa e estado inicial a investigar.
 
 - Spec 002 de fundamentos do freio e telemetria visual, com alvo na versão 0.2.0.
 - Registro da aprovação do quality gate da Spec 002 em 2026-09-02, com sete decisões

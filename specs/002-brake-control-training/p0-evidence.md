@@ -1,6 +1,6 @@
 # P0 — Evidências e pendências
 
-**Data:** 2026-09-02 · **Status:** implementação automática verificada; gate físico pendente
+**Atualizado:** 2026-09-03 · **Status:** implementação automática verificada; evidência física parcial, gate aberto
 **Código:** 1cb48e8a8b3e6f561f2afc7b03118ddfc98fe7db
 **Roteiro físico:** [p0-acquisition-test.md](p0-acquisition-test.md)
 
@@ -64,6 +64,62 @@ Para repetir offscreen, definir `$env:QT_QPA_PLATFORM = 'offscreen'` nesse proce
 Usar `--no-drawing` para retirar carga gráfica e `--size 2560x1080` para ultrawide.
 As medições físicas precisam usar o plugin Windows e a janela visível.
 
+## Medições físicas recebidas em 2026-09-03
+
+Três JSONs completos fornecidos pelo usuário, preservados em
+`build/actions/trainer/package/`. O [resumo auditável](p0-g29-summary.json)
+registra SHA-256 de cada original, configuração, métricas recalculadas e variação
+dos eixos. São três repetições de **G29 / thread principal / com gráfico**, com
+10 s cada; não representam três configurações diferentes.
+
+Todos identificam o G29 de quatro eixos, Windows 11 build 26200, Python 3.12.10,
+pygame 2.6.1 / SDL 2.28.4, plugin Qt `windows`, janela 1920×1061, escala 1 e
+build Actions 1cb48e8. CPU/RAM e versão do G Hub não estão nos relatórios.
+O usuário informou instalação física improvisada; isso permite avaliar captura,
+mas não calibrar o máximo confortável nem julgar precisão de execução.
+
+| Arquivo | Leituras | Média (Hz) | Menor contagem em 1 s | Intervalo p95 / máximo | FPS |
+|---|---:|---:|---:|---|---:|
+| `medicao-p0.json` | 853 | 85,3 | 60 | 18,989 / 36,192 ms | 58,9 |
+| `medicao-p0.1json.json` | 939 | 93,9 | 65 | 17,440 / 23,960 ms | 58,9 |
+| `medicao-p02.json` | 1.082 | 108,2 | 93 | 15,808 / 19,924 ms | 58,9 |
+
+As três terminaram como `completed`, sem erro, com conexão presente em todas
+as amostras. Foi conferido que timestamps são estritamente crescentes, todas as
+amostras pertencem a `[0, 10 s)`, os quatro eixos são finitos e estão em faixa,
+e a leitura de contexto final está após a janela. As estatísticas recalculadas
+coincidem com as exportadas. São taxas de polling do host, não de atualização
+independente do sensor.
+
+O freio (eixo 2) teve 187, 183 e 178 valores distintos, respectivamente, com
+centenas de mudanças durante cada captura. Pela normalização legada, o máximo
+observado foi 87,1%, 89,5% e 85,2%; não é necessário alcançar 100% para este
+experimento de aquisição. Volante, acelerador e embreagem ficaram constantes
+depois da transição inicial, portanto estas capturas não revalidam seu movimento.
+
+Pontos para investigação antes de concluir T016:
+
+- As contagens por segundo caem de 114 para 60, de 116 para 65 e de 107 para 93.
+  Todos os segundos completos atingiram o mínimo de 60, mas o primeiro ensaio
+  chegou ao limite; nenhum atingiu média de 120 Hz. O p95 de desenho foi 12,145,
+  8,987 e 7,622 ms. A curva de execução é reconstruída a cada desenho a partir
+  de uma lista crescente no mesmo contexto da captura; isso é uma hipótese de
+  contenção a comparar sem gráfico e no worker, não uma causa confirmada.
+- Nas duas primeiras capturas, os quatro eixos começam exatamente em zero:
+  111 e 38 amostras, até a primeira leitura não nula em 980,977 e 339,528 ms.
+  Na terceira não há esse trecho inicial. Zero bruto de pedal vira 50% pela
+  normalização legada. Investigar inicialização/atualização do estado antes de
+  calibrar ou pontuar; não atribuir esse padrão ao improviso da montagem nem
+  remover essas amostras silenciosamente. Todas foram mantidas nas estatísticas.
+- Não há redimensionamentos registrados, cancelamentos ou desconexões nessas
+  capturas. IDs SDL sucessivos não comprovam desconexão/reconexão física.
+
+Decisão: evidência real útil de captura do freio e repetição na thread principal;
+manter a arquitetura atual enquanto a comparação não está completa. Ainda faltam
+principal sem gráfico, worker sem/com gráfico, carga de redimensionamento e as
+operações de cancelar/desconectar/reconectar/fechar, além da confirmação do treino
+legado. T016 permanece aberta e não libera P1 por estes três arquivos isoladamente.
+
 ## Fronteiras de janela — T015 ainda aberta
 
 Executado `python experiments/window_boundaries.py`, usando aritmética racional.
@@ -106,6 +162,7 @@ do pacote, execução do worker e fechamento, não o G29 nem o fluxo completo de
 treino real. O binário de diagnóstico foi conferido no pacote, mas não teve
 interação física validada nesta etapa. Retenção dos artefatos: 14 dias.
 
-T016 depende dos quatro relatórios com G29 e das operações de
+T016 recebeu três repetições físicas da mesma configuração em 2026-09-03;
+depende das demais configurações e das operações de
 cancelar/desconectar/reconectar/fechar; P1 não foi iniciado. Não houve merge,
 mudança de versão, tag ou release. E01–E07 continuam experimentais.
