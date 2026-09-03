@@ -8,6 +8,12 @@ na série inicial `0.x`.
 
 ## [Unreleased]
 
+### Corrigido
+
+- O gráfico do modo Guiado agora redesenha continuamente a linha azul da entrada
+  do freio e o cursor temporal durante a tentativa, em vez de mostrá-los somente
+  depois da conclusão.
+
 ## [0.2.0] - 2026-09-03
 
 ### Adicionado

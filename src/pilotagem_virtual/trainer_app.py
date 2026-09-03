@@ -515,6 +515,7 @@ class BrakeTrainerWindow(TrainerWindow):
         samples=self.session.samples
         for chart in (self.chart,self.curve_chart):
             chart.samples=samples; chart.progress=self.session.progress
+            chart.update()
         if self.session.active: self._apply_assistance()
 
     def _show_completion(self):

@@ -42,6 +42,20 @@ def test_modes_hide_and_restore_execution_without_changing_session(app,tmp_path)
     finally: window.close()
 
 
+def test_guided_chart_requests_live_repaint_after_new_pedal_sample(app,tmp_path,monkeypatch):
+    window=make_window(tmp_path)
+    repaints=[]
+    monkeypatch.setattr(window.chart,'update',lambda:repaints.append(len(window.chart.samples)))
+    try:
+        window._start_or_repeat()
+        for _ in range(365): window.controller.poll()
+        window._tick()
+        assert window.session.samples
+        assert repaints[-1]==len(window.session.samples)
+        assert window.chart.reveal and window.chart.recording and not window.chart.result
+    finally: window.close()
+
+
 def test_catalog_navigation_curve_layout_and_legacy_remain_available(app,tmp_path):
     window=make_window(tmp_path)
     try:
