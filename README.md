@@ -2,28 +2,38 @@
 
 Treinador modular de técnicas de pilotagem para volante e pedais, começando por trail braking.
 
-**Versão atual:** `0.1.0`
+**Versão estável:** `0.1.0` · **Build de desenvolvimento:** `0.2.0.dev0`
 
-O projeto está sendo desenvolvido com uma abordagem de Spec-Driven Development (SDD). A especificação e o plano técnico foram aprovados, o hardware spike do G29 foi validado e o núcleo do MVP está em construção.
+O projeto segue Spec-Driven Development (SDD). A versão 0.2.0 está integrada na
+branch `feature/002-brake-control` e aguarda validação física e gate de release.
 
 ## Especificações
 
 - [MVP — Treinador de trail braking](specs/001-trail-braking-mvp/spec.md)
+- [Spec 002 — Fundamentos do freio](specs/002-brake-control-training/spec.md)
+- [Tarefas da Spec 002](specs/002-brake-control-training/tasks.md)
 - [Changelog](CHANGELOG.md)
 - [Fluxo de contribuição e releases](CONTRIBUTING.md)
 
 ## Estado atual
 
-`Build 1 — primeira fatia vertical do treinador`
+`Candidata integrada da Spec 002 — validação Windows/G29 pendente`
 
 O treinador principal e o diagnóstico são aplicativos separados:
 
-- `PilotagemVirtual.exe`: treinador com mapa, cenário, contagem regressiva e captura normalizada.
+- `PilotagemVirtual.exe`: oito fundamentos do freio, calibração, gráfico, pontuação,
+  modos Guiado/Memória/Avaliação, ABS didático e exercício original preservado.
 - `PilotagemVirtual-G29-Spike.exe`: ferramenta permanente de diagnóstico e exportação JSONL bruto.
 
-O Build 1 do treinador usa o perfil observado na captura real do G29. A calibração personalizada, a pontuação e o histórico serão adicionados nos próximos incrementos.
+O treinador oferece calibração personalizada persistente. Tentativas guardam localmente
+os snapshots necessários para repetir os cálculos. Histórico navegável e comparação
+entre sessões permanecem no backlog, fora da 0.2.0.
 
 ## Executável do treinador
+
+Na branch `feature/002-brake-control`, o treinador integrado está em
+`PilotagemVirtual.exe`. O pacote mantém o experimento P0 e o diagnóstico separado.
+Consulte o [registro da candidata integrada](specs/002-brake-control-training/v020-integrated.md).
 
 O executável principal é produzido pelo workflow **Build Pilotagem Virtual Trainer**.
 

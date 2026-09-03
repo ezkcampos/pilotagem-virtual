@@ -35,6 +35,12 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
+      - name: Record build identity
+        shell: pwsh
+        run: >-
+          Set-Content -Encoding utf8 resources/build-info.json
+          '{"commit":"${{ github.sha }}","run_url":"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'
+
       - name: Build Windows executable
         run: >-
           python -m PyInstaller
@@ -46,6 +52,10 @@ jobs:
           --paths src
           --add-data "resources;resources"
           trainer_main.py
+
+      - name: Add P0 acquisition launcher
+        shell: pwsh
+        run: Copy-Item resources/run-p0-acquisition-probe.bat dist/PilotagemVirtual/
 
       - name: Create distributable archive
         shell: pwsh

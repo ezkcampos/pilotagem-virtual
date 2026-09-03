@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, replace
+from statistics import median
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -38,14 +40,22 @@ class PedalCalibration:
     released: float
     pressed: float
     comfortable_max: float = 1.0
+    deadzone: float = 0.0
+
+    def __post_init__(self):
+        if self.axis < 0 or not all(math.isfinite(v) for v in (self.released, self.pressed, self.comfortable_max, self.deadzone)):
+            raise ValueError("Perfil do pedal inválido")
+        if not (-1 <= self.released <= 1 and -1 <= self.pressed <= 1) or abs(self.pressed - self.released) < .1:
+            raise ValueError("Curso do pedal insuficiente")
+        if not 0 <= self.deadzone < self.comfortable_max <= 1:
+            raise ValueError("Máximo de treino deve superar a deadzone")
 
     def normalize(self, raw: float) -> float:
         span = self.pressed - self.released
         if abs(span) < 1e-9:
             return 0.0
         physical = clamp((float(raw) - self.released) / span, 0.0, 1.0)
-        comfortable_max = clamp(self.comfortable_max, 0.05, 1.0)
-        return clamp(physical / comfortable_max, 0.0, 1.0)
+        return clamp((physical - self.deadzone) / (self.comfortable_max - self.deadzone), 0.0, 1.0)
 
 
 @dataclass(frozen=True)
@@ -68,7 +78,9 @@ class CalibrationProfile:
 
     def normalize(self, axes: list[float] | tuple[float, ...]) -> NormalizedControls:
         def raw(index: int) -> float:
-            return float(axes[index]) if 0 <= index < len(axes) else 0.0
+            if not 0 <= index < len(axes) or not math.isfinite(axes[index]):
+                raise ValueError("Eixo ausente ou inválido")
+            return float(axes[index])
 
         return NormalizedControls(
             steering=self.steering.normalize(raw(self.steering.axis)),
@@ -100,4 +112,28 @@ def observed_g29_profile(device_name: str, device_guid: str) -> CalibrationProfi
         brake=PedalCalibration(axis=2, released=released, pressed=-1.0),
         clutch=PedalCalibration(axis=3, released=released, pressed=-1.0),
         source="observed-g29-spike-2026-09-02",
+    )
+
+
+def calibrate_brake(profile, rest, applications, maximum=1.0):
+    if len(rest) < 60 or len(applications) < 60:
+        raise ValueError("Leituras insuficientes; repita a etapa")
+    if not all(math.isfinite(v) and -1 <= v <= 1 for v in (*rest, *applications)):
+        raise ValueError("Leitura inválida na calibração")
+    released = median(rest)
+    pressed = max(applications, key=lambda v: abs(v - released))
+    span = abs(pressed - released)
+    if span < .1:
+        raise ValueError("Movimente o pedal para registrar seu curso")
+    deadzone = max(abs(v - released) for v in rest) / span + .005
+    if deadzone > .15:
+        raise ValueError("Repouso instável; solte o pedal e repita")
+    return replace(profile, brake=PedalCalibration(profile.brake.axis, released, pressed, maximum, deadzone), source="personalized-v1")
+
+
+def profile_from_dict(data):
+    return CalibrationProfile(
+        data["device_name"], data["device_guid"], SteeringCalibration(**data["steering"]),
+        PedalCalibration(**data["accelerator"]), PedalCalibration(**data["brake"]),
+        PedalCalibration(**data["clutch"]) if data.get("clutch") else None, data["source"],
     )

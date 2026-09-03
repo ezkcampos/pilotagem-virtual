@@ -2,8 +2,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+*.egg-info/
+resources/build-info.json
 build/
 dist/
 *.spec
 *.zip
-

@@ -12,6 +12,7 @@ class DeviceInfo:
     axis_count: int
     button_count: int
     hat_count: int
+    instance_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,17 @@ class RawInputState:
     buttons: tuple[int, ...]
     hats: tuple[tuple[int, int], ...]
     connected: bool = True
+    # None is used by trusted replay/synthetic sources. SDL supplies one flag
+    # per axis, independently of its numerical value (zero may be legitimate).
+    initialized_axes: tuple[bool, ...] | None = None
+
+    @property
+    def ready(self) -> bool:
+        return self.connected and (
+            self.initialized_axes is None or (
+                len(self.initialized_axes) == len(self.axes) and all(self.initialized_axes)
+            )
+        )
 
 
 class InputDevice(Protocol):
@@ -34,3 +46,5 @@ class InputBackend(Protocol):
     def list_devices(self) -> list[DeviceInfo]: ...
 
     def open_device(self, device_id: str) -> InputDevice: ...
+
+    def close(self) -> None: ...
