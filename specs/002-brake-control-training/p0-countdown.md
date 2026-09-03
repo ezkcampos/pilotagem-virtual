@@ -40,4 +40,20 @@ o [roteiro de teste](p0-acquisition-test.md) agora informa quando iniciar o movi
 
 ## Build Windows
 
-Build pelo GitHub Actions e conferência do executável pendentes neste registro.
+Código do pacote: **70d7a621d9a67093927df809c328506ec6a5d9b7**.
+
+- [CI Windows 33763562117](https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33763562117):
+  sucesso, **77 testes em 32,26 s**.
+- [Build Trainer 33763577813](https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33763577813):
+  sucesso, **77 testes em 25,25 s**;
+  [artefato Windows](https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33763577813/artifacts/9896608155).
+
+Pacote baixado em `build/actions/trainer-70d7a62/package/`. Abra o
+`run-p0-acquisition-probe.bat` dessa pasta; SHA interno e launcher conferidos.
+Pacotes e medições anteriores foram preservados.
+
+O executável Actions encerrou com código 0 usando fonte falsa/worker/Qt offscreen.
+O JSON v3 confirmou a sequência 3, 2, 1, VALENDO, **3,0025106 s de preparação** e
+**10 s de captura**, com as leituras da preparação fora das métricas. Registrou
+1.101 amostras (110,1 Hz); smoke test, sem interpretação como validação física ou
+benchmark. Relatório local: `build/actions/trainer-70d7a62/packaged-smoke.json`.

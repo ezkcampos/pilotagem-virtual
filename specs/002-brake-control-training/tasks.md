@@ -123,3 +123,7 @@
   localmente e em ambos os jobs Windows; executável baixado conferido com fonte
   falsa e JSON v2. Novo pacote/roteiro em [p0-readiness.md](p0-readiness.md).
   O diagnóstico continua independente. T016 aguarda a confirmação física do incremento.
+
+- T018/T080: build Trainer 33763577813 de 70d7a62 concluído, 77 testes aprovados
+  localmente e no Windows. Executável baixado confirmou 3,0025106 s de preparação
+  e 10 s completos de captura com fonte falsa; [registro](p0-countdown.md).
