@@ -2,9 +2,9 @@
 
 Treinador modular de técnicas de pilotagem para volante e pedais, começando por trail braking.
 
-**Versão atual:** `0.2.0`
+**Versão atual:** `0.2.1`
 
-O projeto segue Spec-Driven Development (SDD). A versão 0.2.0 reúne o treinador
+O projeto segue Spec-Driven Development (SDD). A série 0.2 reúne o treinador
 progressivo de controle do freio; ajustes físicos do G29 continuam documentados.
 
 ## Especificações

@@ -8,6 +8,8 @@ na série inicial `0.x`.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-03
+
 ### Corrigido
 
 - O gráfico do modo Guiado agora redesenha continuamente a linha azul da entrada
