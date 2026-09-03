@@ -10,6 +10,17 @@ na série inicial `0.x`.
 
 ### Adicionado
 
+- Candidata integrada 0.2.0.dev0 com oito níveis de fundamentos do freio, catálogo
+  por dados e acesso separado ao trail braking original.
+- Assistente de calibração do freio com repouso, duas aplicações, deadzone, máximo
+  de treino, prévia, restauração e perfil local transacional em SQLite.
+- Gráfico temporal reutilizável com alvo, tolerância, execução, cursor, lacunas,
+  marcas fora da faixa e inspeção textual de leituras reais.
+- Pontuação determinística por sustentação, patamares, liberação, curva e limite,
+  com subnotas, feedback e snapshots de tentativas idempotentes em SQLite.
+- Modos Guiado, Memória e Avaliação e nível 7 com mapa e gráfico combinados.
+- Nível 8 em duas etapas, com e sem ABS, superfícies didáticas fixa e variável,
+  travamento, recuperação, atuação virtual e comparação de resultados.
 - Contagem visível de 3 segundos no experimento P0, após prontidão dos eixos,
   com sinal “VALENDO” antes dos 10 s de captura, inclusive sem gráfico. JSON v3
   preserva as leituras de preparação separadas da medição.
@@ -75,10 +86,6 @@ na série inicial `0.x`.
 - Proposta de [curvas de frenagem personalizadas](specs/backlog/custom-brake-curves.md),
   editáveis em onze pontos a cada 10% do tempo; versão de entrega ainda não definida.
 
-- Oito níveis de fundamentos do freio, gráfico temporal e modos Guiado, Memória e Avaliação.
-- Comparação didática com e sem ABS, mantendo o diagnóstico do G29 separado.
-- Assistente de calibração e persistência do perfil do dispositivo.
-- Pontuação determinística e feedback imediato da tentativa.
 - Histórico local completo e comparação entre sessões permanecem no backlog da
   Spec 001, fora da 0.2.0; nesta Spec, preservar dados para resultado/reprocessamento.
 

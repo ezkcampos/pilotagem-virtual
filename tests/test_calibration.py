@@ -5,6 +5,7 @@ import pytest
 from pilotagem_virtual.domain.calibration import (
     PedalCalibration,
     SteeringCalibration,
+    calibrate_brake,
     observed_g29_profile,
 )
 
@@ -38,3 +39,21 @@ def test_comfortable_pedal_max_reaches_one_earlier() -> None:
     assert calibration.normalize(1.0) == 0.0
     assert calibration.normalize(-0.5) == 1.0
     assert calibration.normalize(-1.0) == 1.0
+
+
+def test_personalized_brake_uses_rest_noise_deadzone_and_training_max() -> None:
+    profile = observed_g29_profile("G29", "guid")
+    rest = [1.0, .998, .999] * 40
+    applications = ([1., .6, .1, -.6, -1., -.5, .2, 1.] * 20)
+    calibrated = calibrate_brake(profile, rest, applications, maximum=.8)
+    assert calibrated.brake.deadzone > 0
+    assert calibrated.brake.normalize(1.) == 0
+    training_raw = calibrated.brake.released + (calibrated.brake.pressed-calibrated.brake.released)*.8
+    assert calibrated.brake.normalize(training_raw) == pytest.approx(1)
+    assert calibrated.accelerator == profile.accelerator
+
+
+@pytest.mark.parametrize("rest,applications", [([1.]*59,[1.,-1.]*40), ([1.]*60,[.99]*60)])
+def test_personalized_brake_rejects_insufficient_or_degenerate_data(rest, applications) -> None:
+    with pytest.raises(ValueError):
+        calibrate_brake(observed_g29_profile("G29", "guid"), rest, applications)

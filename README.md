@@ -2,11 +2,10 @@
 
 Treinador modular de técnicas de pilotagem para volante e pedais, começando por trail braking.
 
-**Versão atual:** `0.1.0`
+**Versão estável:** `0.1.0` · **Build de desenvolvimento:** `0.2.0.dev0`
 
-O projeto segue Spec-Driven Development (SDD). A versão estável é a 0.1.0;
-a Spec 002 e seu plano foram aprovados e P0 está em desenvolvimento na branch
-`feature/002-brake-control`. A aquisição nova ainda depende de validação física.
+O projeto segue Spec-Driven Development (SDD). A versão 0.2.0 está integrada na
+branch `feature/002-brake-control` e aguarda validação física e gate de release.
 
 ## Especificações
 
@@ -18,27 +17,23 @@ a Spec 002 e seu plano foram aprovados e P0 está em desenvolvimento na branch
 
 ## Estado atual
 
-`P0 da Spec 002 — base de aquisição e medição; treino legado preservado`
+`Candidata integrada da Spec 002 — validação Windows/G29 pendente`
 
 O treinador principal e o diagnóstico são aplicativos separados:
 
-- `PilotagemVirtual.exe`: treinador com mapa, cenário, contagem regressiva e captura normalizada.
+- `PilotagemVirtual.exe`: oito fundamentos do freio, calibração, gráfico, pontuação,
+  modos Guiado/Memória/Avaliação, ABS didático e exercício original preservado.
 - `PilotagemVirtual-G29-Spike.exe`: ferramenta permanente de diagnóstico e exportação JSONL bruto.
 
-O treinador usa o perfil observado na captura real do G29. Calibração personalizada,
-pontuação, gráfico de treino e novos níveis serão adicionados após P0. Histórico
-completo e comparação entre sessões permanecem no backlog, fora da 0.2.0.
+O treinador oferece calibração personalizada persistente. Tentativas guardam localmente
+os snapshots necessários para repetir os cálculos. Histórico navegável e comparação
+entre sessões permanecem no backlog, fora da 0.2.0.
 
 ## Executável do treinador
 
-Na branch `feature/002-brake-control`, P0 já possui proteção de timestamps,
-snapshots por tentativa e um modo experimental de medição. O pacote de
-desenvolvimento inclui `run-p0-acquisition-probe.bat`, que abre G29/worker e salva
-cada relatório automaticamente em `medicoes-p0`; o treino normal continua
-em `PilotagemVirtual.exe`. Ambos aguardam confirmação do estado inicial dos eixos.
-O worker é o candidato preferido pelos seis testes físicos, mas sua integração
-depende da validação operacional. Consulte as [evidências P0](specs/002-brake-control-training/p0-evidence.md)
-e o [roteiro G29](specs/002-brake-control-training/p0-acquisition-test.md).
+Na branch `feature/002-brake-control`, o treinador integrado está em
+`PilotagemVirtual.exe`. O pacote mantém o experimento P0 e o diagnóstico separado.
+Consulte o [registro da candidata integrada](specs/002-brake-control-training/v020-integrated.md).
 
 O executável principal é produzido pelo workflow **Build Pilotagem Virtual Trainer**.
 

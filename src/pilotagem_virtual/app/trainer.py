@@ -34,6 +34,7 @@ class TrainerController:
         self.waiting_for_input = False
         self.error: str | None = None
         self.closed = False
+        self.last_raw = None
         self._last_timestamp_ns: int | None = None
 
     def refresh_devices(self) -> list[DeviceInfo]:
@@ -44,6 +45,7 @@ class TrainerController:
         self.waiting_for_input = False
         self.error = None
         self.controls = NormalizedControls()
+        self.last_raw = None
         return self.backend.list_devices()
 
     def select_device(self, device_id: str) -> None:
@@ -53,6 +55,7 @@ class TrainerController:
         self.profile = None
         self.controls = NormalizedControls()
         self.device = self.backend.open_device(device_id)
+        self.last_raw = None
         self._last_timestamp_ns = None
         info = self.device.info
         if is_observed_g29_profile(info.name, info.axis_count):
@@ -75,6 +78,7 @@ class TrainerController:
         except StopIteration:
             self._fail("input_exhausted")
             return None
+        self.last_raw = raw
         if not raw.connected:
             self._fail("device_disconnected")
             return raw
