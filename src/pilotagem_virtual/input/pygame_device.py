@@ -10,18 +10,21 @@ os.environ.setdefault("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1")
 import pygame
 
 from pilotagem_virtual.input.device import DeviceInfo, RawInputState
+from pilotagem_virtual.input.sdl_state import SdlJoystickState
 
 
 class PygameInputDevice:
     def __init__(
         self, joystick: pygame.joystick.JoystickType, info: DeviceInfo,
         clock_ns: Callable[[], int] = time.perf_counter_ns,
+        state_reader: SdlJoystickState | None = None,
     ) -> None:
         self._joystick = joystick
         self._info = info
         self._clock_ns = clock_ns
         self._owner = threading.get_ident()
         self._connected = True
+        self._state_reader = state_reader or SdlJoystickState()
 
     @property
     def info(self) -> DeviceInfo:
@@ -49,10 +52,14 @@ class PygameInputDevice:
                 tuple(self._joystick.get_hat(index))
                 for index in range(self._joystick.get_numhats())
             )
+            connected, initialized = self._state_reader.read(self.info.instance_id, len(axes))
+            if not connected:
+                self._connected = False
+                return RawInputState(self._clock_ns(), (), (), (), connected=False)
         except pygame.error:
             self._connected = False
             return RawInputState(self._clock_ns(), (), (), (), connected=False)
-        return RawInputState(self._clock_ns(), axes, buttons, hats)
+        return RawInputState(self._clock_ns(), axes, buttons, hats, initialized_axes=initialized)
 
 
 class PygameInputBackend:
@@ -62,6 +69,11 @@ class PygameInputBackend:
         self._closed = False
         pygame.init()
         pygame.joystick.init()
+        try:
+            self._state_reader = SdlJoystickState()
+        except Exception:
+            pygame.quit()
+            raise
         self._devices: dict[str, tuple[pygame.joystick.JoystickType, DeviceInfo]] = {}
 
     def list_devices(self) -> list[DeviceInfo]:
@@ -96,7 +108,7 @@ class PygameInputBackend:
             joystick, info = self._devices[device_id]
         except KeyError as error:
             raise LookupError(f"Dispositivo não encontrado: {device_id}") from error
-        return PygameInputDevice(joystick, info, self._clock_ns)
+        return PygameInputDevice(joystick, info, self._clock_ns, self._state_reader)
 
     def close(self) -> None:
         self._check_owner()

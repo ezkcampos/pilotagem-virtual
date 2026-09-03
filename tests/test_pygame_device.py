@@ -16,8 +16,9 @@ class JoystickStub:
     def get_hat(self, index): return (0, 1)
 
 
-def device():
-    return PygameInputDevice(JoystickStub(), DeviceInfo("guid:7", "G29", "guid", 4, 1, 1, 7), lambda: 42)
+def device(state_reader=None):
+    state_reader = state_reader or SimpleNamespace(read=lambda instance, axes: (True, (True,) * axes))
+    return PygameInputDevice(JoystickStub(), DeviceInfo("guid:7", "G29", "guid", 4, 1, 1, 7), lambda: 42, state_reader)
 
 
 def test_removal_uses_instance_id_and_stays_disconnected(monkeypatch):
@@ -51,3 +52,17 @@ def test_poll_cannot_move_to_another_thread(monkeypatch):
     monkeypatch.setattr("pilotagem_virtual.input.pygame_device.threading.get_ident", lambda: -1)
     with pytest.raises(RuntimeError, match="thread proprietária"):
         current.poll()
+
+
+def test_readiness_is_not_guessed_from_axis_values(monkeypatch):
+    monkeypatch.setattr(pygame.event, "get", lambda: [])
+    statuses = iter([(True, (False,) * 4), (True, (True,) * 4), (False, ())])
+    current = device(SimpleNamespace(read=lambda *args: next(statuses)))
+    monkeypatch.setattr(current._joystick, "get_axis", lambda index: 0.)
+    pending = current.poll()
+    ready = current.poll()
+    assert pending.axes == ready.axes == (0.,) * 4
+    assert not pending.ready and ready.ready
+    # Native attached status also catches removal without an event in the queue.
+    assert not current.poll().connected
+    assert not current.poll().connected

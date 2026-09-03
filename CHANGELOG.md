@@ -10,6 +10,12 @@ na série inicial `0.x`.
 
 ### Adicionado
 
+- Confirmação nativa de inicialização dos eixos SDL, com zero legítimo preservado;
+  treinador aguarda a primeira leitura antes de permitir uma tentativa.
+- Relatório P0 v2 com espera inicial completa, identidade por execução e ciclo
+  de vida. Launcher G29/worker salva automaticamente em `medicoes-p0`, inclusive
+  cancelamento, timeout, desconexão e fechamento.
+
 - Aprovação do Plan 002 e decomposição em Tasks em 2026-09-02; P0 autorizado,
   mantendo hipóteses experimentais e gates de hardware/merge/release separados.
 - Sessões com identidade própria, snapshots imutáveis e contexto real de fronteira;
@@ -47,6 +53,11 @@ na série inicial `0.x`.
   sujeitos aos experimentos; persistência de snapshots para reprocessamento.
 
 ### Corrigido
+
+- Estados ainda não inicializados deixam de aparecer como pedais a 50% no
+  treinador; a captura do experimento começa somente após confirmação dos eixos.
+- Fechamento síncrono do experimento na thread principal e recuperação manual
+  quando o relatório não pode ser salvo ao fechar.
 
 - Captura do treinador usa timestamps da leitura e rejeita eixos inválidos,
   duplicação temporal e fim de replay, sem fabricar amostras.

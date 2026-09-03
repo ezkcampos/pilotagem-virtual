@@ -33,9 +33,11 @@ completo e comparação entre sessões permanecem no backlog, fora da 0.2.0.
 
 Na branch `feature/002-brake-control`, P0 já possui proteção de timestamps,
 snapshots por tentativa e um modo experimental de medição. O pacote de
-desenvolvimento inclui `run-p0-acquisition-probe.bat`; o treino normal continua
-em `PilotagemVirtual.exe`. A escolha da arquitetura de aquisição ainda depende
-de teste físico. Consulte as [evidências P0](specs/002-brake-control-training/p0-evidence.md)
+desenvolvimento inclui `run-p0-acquisition-probe.bat`, que abre G29/worker e salva
+cada relatório automaticamente em `medicoes-p0`; o treino normal continua
+em `PilotagemVirtual.exe`. Ambos aguardam confirmação do estado inicial dos eixos.
+O worker é o candidato preferido pelos seis testes físicos, mas sua integração
+depende da validação operacional. Consulte as [evidências P0](specs/002-brake-control-training/p0-evidence.md)
 e o [roteiro G29](specs/002-brake-control-training/p0-acquisition-test.md).
 
 O executável principal é produzido pelo workflow **Build Pilotagem Virtual Trainer**.

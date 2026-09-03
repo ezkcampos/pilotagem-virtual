@@ -31,6 +31,7 @@ class TrainerController:
         self.profile: CalibrationProfile | None = None
         self.controls = NormalizedControls()
         self.available = False
+        self.waiting_for_input = False
         self.error: str | None = None
         self.closed = False
         self._last_timestamp_ns: int | None = None
@@ -40,12 +41,15 @@ class TrainerController:
         self.device = None
         self.profile = None
         self.available = False
+        self.waiting_for_input = False
+        self.error = None
         self.controls = NormalizedControls()
         return self.backend.list_devices()
 
     def select_device(self, device_id: str) -> None:
         self._require_idle()
         self.available = False
+        self.waiting_for_input = False
         self.profile = None
         self.controls = NormalizedControls()
         self.device = self.backend.open_device(device_id)
@@ -53,18 +57,18 @@ class TrainerController:
         info = self.device.info
         if is_observed_g29_profile(info.name, info.axis_count):
             self.profile = observed_g29_profile(info.name, info.guid)
-            self.available = True
+            self.waiting_for_input = True
             self.error = None
         else:
             self.error = "unsupported_device"
 
     def start(self) -> str:
         if self.closed or not self.available or self.profile is None:
-            raise RuntimeError("Conecte um G29 compatível antes de iniciar")
+            raise RuntimeError("Aguarde a primeira leitura do G29 antes de iniciar")
         return self.session.start(self.clock_ns(), self.profile)
 
     def poll(self) -> RawInputState | None:
-        if self.closed or not self.available or self.device is None or self.profile is None:
+        if self.closed or self.error or self.device is None or self.profile is None:
             return None
         try:
             raw = self.device.poll()
@@ -82,10 +86,18 @@ class TrainerController:
         if self.profile.clutch is not None:
             axes.append(self.profile.clutch.axis)
         if any(index < 0 or index >= len(raw.axes) for index in axes) or not all(
-            math.isfinite(value) for value in raw.axes
+            math.isfinite(value) and -1 <= value <= 1 for value in raw.axes
         ):
             self._fail("invalid_axes")
             return raw
+        if not raw.ready:
+            if self.session.active or self.available:
+                self._fail("input_not_ready")
+            else:
+                self.waiting_for_input = True
+            return raw
+        self.available = True
+        self.waiting_for_input = False
         self.controls = self.profile.normalize(raw.axes)
         self.session.tick(raw.timestamp_ns, self.controls, attempt_id=self.session.attempt_id)
         return raw
@@ -99,10 +111,12 @@ class TrainerController:
         self.session.cancel("application_closed")
         self.closed = True
         self.available = False
+        self.waiting_for_input = False
         self.backend.close()
 
     def _fail(self, reason: str) -> None:
         self.available = False
+        self.waiting_for_input = False
         self.error = reason
         self.controls = NormalizedControls()
         self.session.cancel(reason)

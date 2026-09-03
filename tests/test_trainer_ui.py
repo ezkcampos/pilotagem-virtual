@@ -16,11 +16,12 @@ def app():
 
 
 def test_rendering_cannot_create_samples_and_disconnect_restores_controls(app):
-    states = [RawInputState(3_000_000_000, (0, 1, 0, 1), (), ()), RawInputState(3_008_000_000, (), (), (), False)]
+    states = [RawInputState(0, (0, 1, 1, 1), (), ()), RawInputState(3_000_000_000, (0, 1, 0, 1), (), ()), RawInputState(3_008_000_000, (), (), (), False)]
     controller = controller_for(states)
     window = TrainerWindow(controller)
     window.timer.stop()
     window.render_timer.stop()
+    controller.poll()
     try:
         window._start_or_repeat()
         assert not window.refresh_button.isEnabled()
@@ -42,11 +43,12 @@ def test_rendering_cannot_create_samples_and_disconnect_restores_controls(app):
 
 @pytest.mark.parametrize("size", [(1920, 1080), (2560, 1080)])
 def test_legacy_completion_repeat_and_layout(app, size):
-    states = [RawInputState(t, (0, 1, 0, 1), (), ()) for t in [3_000_000_000, 11_000_000_000]]
+    states = [RawInputState(t, (0, 1, 0, 1), (), ()) for t in [0, 3_000_000_000, 11_000_000_000]]
     controller = controller_for(states)
     window = TrainerWindow(controller)
     window.timer.stop()
     window.render_timer.stop()
+    controller.poll()
     try:
         window.resize(*size)
         window.show()
@@ -67,5 +69,29 @@ def test_legacy_completion_repeat_and_layout(app, size):
         assert not controller.session.samples
         assert not window.result_label.text()
         assert previous.samples
+    finally:
+        window.close()
+
+
+def test_initializing_device_hides_percentages_until_ready(app):
+    controller = controller_for([
+        RawInputState(0, (0,) * 4, (), (), initialized_axes=(False,) * 4),
+        RawInputState(1, (0,) * 4, (), (), initialized_axes=(True,) * 4),
+    ])
+    window = TrainerWindow(controller)
+    window.timer.stop()
+    window.render_timer.stop()
+    try:
+        controller.poll()
+        window._tick()
+        assert not window.start_button.isEnabled()
+        assert window.brake_meter.value_label.text() == "—"
+        assert window.phase_label.text() == "AGUARDANDO"
+        assert "Aguardando" in window.device_status.text()
+        controller.poll()
+        window._tick()
+        assert window.start_button.isEnabled()
+        assert window.brake_meter.value_label.text() == "50%"
+        assert window.phase_label.text() == "PRONTO"
     finally:
         window.close()

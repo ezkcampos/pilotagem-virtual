@@ -65,6 +65,10 @@ class ControlMeter(QWidget):
             self.bar.setValue(round(value * 1000))
             self.value_label.setText(f"{value * 100:.0f}%")
 
+    def set_pending(self) -> None:
+        self.bar.setValue(1000 if self.centered else 0)
+        self.value_label.setText("—")
+
 
 class TrainerWindow(QMainWindow):
     def __init__(self, controller: TrainerController | None = None) -> None:
@@ -214,7 +218,10 @@ class TrainerWindow(QMainWindow):
             self.start_button.setEnabled(False)
             return
 
-        if self.controller.available:
+        if self.controller.waiting_for_input:
+            self.device_status.setText("Aguardando primeira leitura do G29. Mova e solte os pedais.")
+            self.start_button.setEnabled(False)
+        elif self.controller.available:
             self.device_status.setText(
                 "G29 conectado · perfil observado carregado · calibração personalizada virá no próximo build"
             )
@@ -233,8 +240,17 @@ class TrainerWindow(QMainWindow):
         self.start_button.setEnabled(not self.session.active and self.controller.available)
         if self.controller.error:
             self.device_status.setText("Leitura indisponível. Detecte o G29 novamente.")
+        elif self.controller.waiting_for_input:
+            self.device_status.setText("Aguardando primeira leitura do G29. Mova e solte os pedais.")
+        elif self.controller.available:
+            self.device_status.setText("G29 pronto · perfil observado carregado")
+        if not self.controller.available:
+            for meter in (self.steering_meter, self.brake_meter, self.accelerator_meter):
+                meter.set_pending()
         self.map_widget.set_progress(self.session.progress)
-        if self.session.state == SessionState.COUNTDOWN:
+        if self.session.state == SessionState.PREVIEW:
+            self.phase_label.setText("PRONTO" if self.controller.available else "AGUARDANDO")
+        elif self.session.state == SessionState.COUNTDOWN:
             self.phase_label.setText(str(self.session.countdown_value(self.controller.clock_ns())))
         elif self.session.state == SessionState.RUNNING:
             self.phase_label.setText(self.scenario.active_marker(self.session.progress).label)

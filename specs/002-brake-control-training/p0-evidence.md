@@ -4,6 +4,9 @@
 **Código:** 1cb48e8a8b3e6f561f2afc7b03118ddfc98fe7db
 **Roteiro físico:** [p0-acquisition-test.md](p0-acquisition-test.md)
 
+**Incremento posterior:** [prontidão inicial e encerramento](p0-readiness.md),
+com JSON v2 e salvamento automático para os próximos testes físicos.
+
 ## Entregue e verificado
 
 - T010/T011: fim de replay explícito, timestamp original, ID por tentativa,

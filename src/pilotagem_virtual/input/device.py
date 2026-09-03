@@ -22,6 +22,17 @@ class RawInputState:
     buttons: tuple[int, ...]
     hats: tuple[tuple[int, int], ...]
     connected: bool = True
+    # None is used by trusted replay/synthetic sources. SDL supplies one flag
+    # per axis, independently of its numerical value (zero may be legitimate).
+    initialized_axes: tuple[bool, ...] | None = None
+
+    @property
+    def ready(self) -> bool:
+        return self.connected and (
+            self.initialized_axes is None or (
+                len(self.initialized_axes) == len(self.axes) and all(self.initialized_axes)
+            )
+        )
 
 
 class InputDevice(Protocol):

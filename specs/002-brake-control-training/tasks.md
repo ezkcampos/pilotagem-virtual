@@ -26,6 +26,7 @@
 | [x] T014 | Experimento SDL/Qt reproduzível | T010/T013 | RNF2-002/003: thread principal e worker isolados, backend inicializado/fechado no contexto proprietário, entrada falsa e real, carga visual, relatório e testes de encerramento. |
 | [ ] T015 | Experimento de fronteiras de janela | T011 | RF2-026, CA2-002: comparar interpolação com/sem amostras externas, timestamps deslocados e lacunas; registrar decisão ou mudança de requisito ainda necessária antes de P2. |
 | [ ] T016 [HW] | Validar aquisição e escolher arquitetura | T012/T014, builds Windows | G29: 10 s sem/com desenho, redimensionar, cancelar, desconectar/reconectar e fechar; registrar PC, driver, SHA, taxas/lacunas e decisão. Não presumir que 8 ms comprova 120 Hz. |
+| [x] T017 | Distinguir prontidão inicial e preservar encerramentos | Evidências parciais de T016 | Flags nativas por eixo, início bloqueado até prontidão, espera preservada em JSON v2, timeout, autosave e fechamento; testes de backend virtual/fluxos em [p0-readiness.md](p0-readiness.md). Confirmação física permanece em T016. |
 
 ## P1 — Calibração e persistência
 

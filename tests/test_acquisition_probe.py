@@ -52,7 +52,7 @@ def test_probe_cancel_and_close_are_safe(app, context):
     QTest.qWait(25)
     window.close()
     wait_finished(window)
-    assert window.report["reason"] == "cancelled"
+    assert window.report["reason"] == "application_closed"
     assert not window.render_timer.isActive()
 
 
@@ -95,4 +95,146 @@ def test_g29_backend_lifecycle_stays_in_worker_with_stubbed_hardware(app, monkey
     assert {name for name, _ in calls} == {"init", "list", "open", "poll", "close"}
     assert len({owner for _, owner in calls}) == 1
     assert calls[0][1] != threading.get_ident()
+    window.close()
+
+
+def install_initializing_backend(monkeypatch, pending=3, disconnect_at=None):
+    instances = []
+
+    class Backend:
+        def __init__(self):
+            self.polls = 0
+            self.owners = [threading.get_ident()]
+            self.closed = False
+            instances.append(self)
+
+        def list_devices(self):
+            self.owners.append(threading.get_ident())
+            return [DeviceInfo(f"g29:{len(instances)}", "G29", "guid", 4, 0, 0, len(instances))]
+
+        def open_device(self, device_id):
+            self.owners.append(threading.get_ident())
+            return self
+
+        def poll(self):
+            assert not self.closed
+            self.owners.append(threading.get_ident())
+            self.polls += 1
+            if disconnect_at == self.polls and len(instances) == 1:
+                return RawInputState(time.perf_counter_ns(), (), (), (), False)
+            # Both the uninitialized state and a legitimate initialized state
+            # contain zeros. Readiness must come from flags, never amplitudes.
+            return RawInputState(time.perf_counter_ns(), (0.,) * 4, (), (),
+                                 initialized_axes=(self.polls > pending,) * 4)
+
+        def close(self):
+            assert not self.closed
+            self.owners.append(threading.get_ident())
+            self.closed = True
+
+    monkeypatch.setattr("pilotagem_virtual.acquisition_probe.PygameInputBackend", Backend)
+    return instances
+
+
+@pytest.mark.parametrize("context", ["main", "worker"])
+def test_initialization_is_preserved_outside_capture_and_zero_can_be_ready(app, monkeypatch, tmp_path, context):
+    instances = install_initializing_backend(monkeypatch)
+    window = ProbeWindow(ProbeConfig(source="g29", context=context, duration_seconds=.06), output_dir=tmp_path)
+    window.start_run()
+    wait_finished(window)
+    report = json.loads(next(tmp_path.glob('*.json')).read_text(encoding="utf-8"))
+    assert report["reason"] == "completed"
+    assert len(report["initialization"]["samples"]) == 3
+    assert all(s["timestamp_ns"] < report["origin_ns"] for s in report["initialization"]["samples"])
+    assert report["samples"][0]["timestamp_ns"] == report["origin_ns"]
+    assert all(s["axes"] == [0.] * 4 and all(s["initialized_axes"]) for s in report["samples"])
+    assert report["acquisition"]["sample_count"] == len(report["samples"])
+    assert report["lifecycle"][-2]["event"] == "backend_closed"
+    assert report["lifecycle"][-1]["event"] == "context_finished"
+    assert len(set(instances[0].owners)) == 1 and instances[0].closed
+    window.close()
+
+
+@pytest.mark.parametrize("context", ["main", "worker"])
+def test_initialization_timeout_saves_pending_data_without_fake_attempt(app, monkeypatch, tmp_path, context):
+    install_initializing_backend(monkeypatch, pending=10000)
+    window = ProbeWindow(ProbeConfig(source="g29", context=context, initialization_timeout_seconds=.03), output_dir=tmp_path)
+    window.start_run()
+    wait_finished(window)
+    assert window.report["reason"] == "initialization_timeout"
+    assert window.report["origin_ns"] is None and window.report["duration_ns"] == 0
+    assert window.report["acquisition"] is None
+    assert not window.report["samples"] and window.report["initialization"]["samples"]
+    assert len(list(tmp_path.glob('*.json'))) == 1
+    window.close()
+
+
+@pytest.mark.parametrize("context", ["main", "worker"])
+def test_cancel_then_close_during_initialization_save_distinct_reports(app, monkeypatch, tmp_path, context):
+    instances = install_initializing_backend(monkeypatch, pending=10000)
+    window = ProbeWindow(ProbeConfig(source="g29", context=context), output_dir=tmp_path)
+    window.show()
+    window.start_run()
+    QTest.qWait(30)
+    window.stop_button.click()
+    wait_finished(window)
+    first_id = window.report["run_id"]
+    assert window.report["reason"] == "cancelled"
+    window.start_run()
+    QTest.qWait(30)
+    window.close()
+    wait_finished(window)
+    assert window.report["run_id"] != first_id
+    assert window.report["reason"] == "application_closed"
+    assert not window.isVisible()
+    assert len(list(tmp_path.glob('*.json'))) == 2
+    assert all(i.closed and len(set(i.owners)) == 1 for i in instances)
+
+
+@pytest.mark.parametrize("context", ["main", "worker"])
+@pytest.mark.parametrize("disconnect_at", [2, 6])
+def test_disconnect_during_initialization_or_capture_can_start_new_run(app, monkeypatch, tmp_path, context, disconnect_at):
+    instances = install_initializing_backend(monkeypatch, disconnect_at=disconnect_at)
+    window = ProbeWindow(ProbeConfig(source="g29", context=context, duration_seconds=.06), output_dir=tmp_path)
+    window.start_run()
+    wait_finished(window)
+    first = window.report
+    assert first["reason"] == "disconnected"
+    assert first["terminal_reading"]["connected"] is False
+    assert bool(first["samples"]) == (disconnect_at > 3)
+    window.start_run()
+    wait_finished(window)
+    assert window.report["reason"] == "completed"
+    assert first["run_id"] != window.report["run_id"]
+    assert len(list(tmp_path.glob('*.json'))) == 2
+    assert all(i.closed and len(set(i.owners)) == 1 for i in instances)
+    window.close()
+
+
+def test_failed_autosave_keeps_manual_window_open_on_close(app, monkeypatch, tmp_path):
+    install_initializing_backend(monkeypatch, pending=10000)
+    invalid_directory = tmp_path / "file-instead-of-directory"
+    invalid_directory.write_text("existing file")
+    window = ProbeWindow(ProbeConfig(source="g29", context="worker"), output_dir=invalid_directory)
+    window.show()
+    window.start_run()
+    QTest.qWait(30)
+    window.close()
+    wait_finished(window)
+    assert window.save_failed and window.isVisible()
+    assert window.report and window.save_button.isEnabled()
+    assert window._write(tmp_path / "manual-recovery.json")
+    window.close()
+
+
+def test_resize_is_recorded_during_worker_capture(app, tmp_path):
+    window = ProbeWindow(ProbeConfig(context="worker", duration_seconds=.15), output_dir=tmp_path)
+    window.show()
+    window.start_run()
+    QTest.qWait(30)
+    window.resize(1440, 900)
+    actual_width = window.width()
+    wait_finished(window)
+    assert window.report["reason"] == "completed"
+    assert any(e["width"] == actual_width and e["height"] == 900 for e in window.report["ui"]["resize_events"])
     window.close()
