@@ -81,3 +81,28 @@ confirmar o término da thread, sem bloquear a GUI durante a limpeza. Após essa
 mudança, a suíte acima concluiu; cinco processos independentes também concluíram
 o teste de 30 ciclos (150 execuções adicionais), com timeout externo de 30 s por
 processo. A confirmação de estabilidade física continua em T016.
+
+## Build Windows disponível
+
+Código do pacote: **21a5489d3def153729a96c9242f33458ecd95ae0**.
+
+- [CI Windows 33761740616](https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33761740616):
+  sucesso, **70 testes passaram em 17,02 s**.
+- [Build Trainer 33761741323](https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33761741323):
+  sucesso, **70 testes passaram em 16,07 s**;
+  [artefato Windows](https://github.com/ezkcampos/pilotagem-virtual/actions/runs/33761741323/artifacts/9895838606).
+
+Pacote baixado e extraído em `build/actions/trainer-21a5489/package/`. Abra
+`run-p0-acquisition-probe.bat` nessa pasta; o launcher e o SHA interno foram
+conferidos. Os executáveis/logs anteriores em `build/actions/trainer/package/`
+foram preservados. Não houve instalação nem substituição de release.
+
+O executável baixado concluiu 10 s com fonte falsa/worker/offscreen e exportou
+JSON v2 com identidade correta, 1.067 leituras (106,7 Hz), mínimo por segundo 94,
+intervalo máximo 23,780 ms e 58,9 FPS. É um smoke test com atividade concorrente,
+sem interpretação como benchmark comparativo ou validação física. Uma segunda
+execução curta para inspecionar módulos encerrou com código 0: só uma SDL2 estava
+carregada, em `_internal/pygame/SDL2.dll`, com SHA-256 idêntico ao da biblioteca
+usada no teste nativo virtual. A consulta de prontidão do G29 no pacote ainda
+depende do próximo teste físico; não foi disputado o dispositivo com a janela
+antiga do usuário, que estava aberta.

@@ -117,3 +117,8 @@
 
 - T080: dois builds Windows de 1cb48e8 concluídos; pacote do treinador executado
   com fonte falsa, SHA conferido no relatório. Artefatos e limitações em [p0-evidence.md](p0-evidence.md).
+
+- T017/T080: build Trainer 33761741323 de 21a5489 concluído, 70 testes aprovados
+  localmente e em ambos os jobs Windows; executável baixado conferido com fonte
+  falsa e JSON v2. Novo pacote/roteiro em [p0-readiness.md](p0-readiness.md).
+  O diagnóstico continua independente. T016 aguarda a confirmação física do incremento.
