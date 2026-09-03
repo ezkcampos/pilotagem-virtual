@@ -69,6 +69,9 @@ na série inicial `0.x`.
 
 ### Planejado
 
+- Proposta de [curvas de frenagem personalizadas](specs/backlog/custom-brake-curves.md),
+  editáveis em onze pontos a cada 10% do tempo; versão de entrega ainda não definida.
+
 - Oito níveis de fundamentos do freio, gráfico temporal e modos Guiado, Memória e Avaliação.
 - Comparação didática com e sem ABS, mantendo o diagnóstico do G29 separado.
 - Assistente de calibração e persistência do perfil do dispositivo.
