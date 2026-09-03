@@ -8,6 +8,8 @@ na série inicial `0.x`.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-03
+
 ### Adicionado
 
 - Candidata integrada 0.2.0.dev0 com oito níveis de fundamentos do freio, catálogo

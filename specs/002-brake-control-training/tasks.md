@@ -1,6 +1,6 @@
 # Tarefas 002 — Fundamentos do freio e telemetria visual
 
-**Status:** candidata integrada 0.2.0.dev0; validações físicas e gate de release pendentes
+**Status:** 0.2.0 integrada e autorizada para tag em 2026-09-03; validações físicas complementares pendentes
 **Plan aprovado:** 2026-09-02 — “bora, pode seguir”, após revisão de 0bbf068
 **Spec:** [spec.md](spec.md) · **Plano:** [plan.md](plan.md)
 **Branch:** feature/002-brake-control · **Versão-alvo:** 0.2.0
@@ -86,7 +86,7 @@
 | [x] T080 | CI de testes e builds independentes | T000; executada também nos incrementos | Dois workflows Windows; branch/SHA explícitos, testes e artefatos; nenhum build local substitui Actions. |
 | [ ] T081 | Regressão integrada e desempenho | P0–P6 | RF2-001–033, RNF2-001–009, CA2-001–008: testes de domínio/UI/falha, offline, resoluções, 30 repetições, latência ≤500 ms e aquisição ≥60 Hz. |
 | [ ] T082 [HW] | Executáveis e G29 no PC de referência | T080/T081 | Executar pacotes Actions, reinício/perfil, cancelamento/desconexão/reconexão, 30 repetições e diagnóstico; registrar evidência e limitações. |
-| [ ] T083 | Gate da 0.2.0 e preparação da release | T082 e autorização explícita | Conferir critérios, autorizar merge, testar main, sincronizar versões/changelog; tag/release somente com autorização correspondente. |
+| [x] T083 | Gate da 0.2.0 e preparação da release | Autorização explícita após o merge do PR #1 | Main integrada com checks verdes; versões e changelog sincronizados. O responsável autorizou a tag em 2026-09-03, aceitando que T082 permaneça como validação física complementar. |
 
 ## Evidências
 
@@ -133,3 +133,7 @@
   modos, legado e 30 repetições integradas. Evidência e decisões em
   [v020-integrated.md](v020-integrated.md). T016/T023/T042/T052 e T081–T083
   permanecem abertos para o único ciclo físico/integrado e o gate da versão.
+
+- Release 0.2.0: PR #1 mesclado em `f4f80d7`, com checks verdes. O responsável
+  autorizou explicitamente a tag após o merge; a validação física T082 permanece
+  registrada como complementar e não foi apresentada como concluída.

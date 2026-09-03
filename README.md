@@ -2,10 +2,10 @@
 
 Treinador modular de técnicas de pilotagem para volante e pedais, começando por trail braking.
 
-**Versão estável:** `0.1.0` · **Build de desenvolvimento:** `0.2.0.dev0`
+**Versão atual:** `0.2.0`
 
-O projeto segue Spec-Driven Development (SDD). A versão 0.2.0 está integrada na
-branch `feature/002-brake-control` e aguarda validação física e gate de release.
+O projeto segue Spec-Driven Development (SDD). A versão 0.2.0 reúne o treinador
+progressivo de controle do freio; ajustes físicos do G29 continuam documentados.
 
 ## Especificações
 
@@ -17,7 +17,7 @@ branch `feature/002-brake-control` e aguarda validação física e gate de relea
 
 ## Estado atual
 
-`Candidata integrada da Spec 002 — validação Windows/G29 pendente`
+`Spec 002 integrada — validação física complementar do Windows/G29 pendente`
 
 O treinador principal e o diagnóstico são aplicativos separados:
 
