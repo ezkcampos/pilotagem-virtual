@@ -62,7 +62,7 @@ def test_catalog_navigation_curve_layout_and_legacy_remain_available(app,tmp_pat
         assert window.exercise_combo.count()==8
         window.exercise_combo.setCurrentIndex(6)
         assert window.visuals.currentIndex()==1 and window.map_widget.isVisibleTo(window.visuals)
-        window.category_combo.setCurrentIndex(1)
+        window.category_combo.setCurrentIndex(2)
         assert window.visuals.currentIndex()==2 and not window.exercise_combo.isEnabled()
         window.category_combo.setCurrentIndex(0)
         assert window.exercise_combo.isEnabled()

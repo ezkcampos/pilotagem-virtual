@@ -8,6 +8,13 @@ na série inicial `0.x`.
 
 ## [Unreleased]
 
+### Adicionado
+
+- Editor de curvas personalizadas com onze pontos fixos no tempo, de 0% a 100%
+  em intervalos de 10%, ajuste por arraste ou teclado, duração e tolerância.
+- Curvas personalizadas salvas localmente podem ser editadas e treinadas nos modos
+  Guiado, Memória e Avaliação, com alvo e entrada real no gráfico temporal.
+
 ## [0.2.1] - 2026-09-03
 
 ### Corrigido

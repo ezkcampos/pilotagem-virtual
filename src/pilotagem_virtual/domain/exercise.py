@@ -31,6 +31,7 @@ class Exercise:
     version: int = 1
     formula: str = "brake-v1"
     modes: tuple = ("Guiado", "Memória", "Avaliação")
+    custom: bool = False
 
     @classmethod
     def from_dict(cls, data):
@@ -41,10 +42,17 @@ class Exercise:
         if 'modes' in data:
             data['modes'] = tuple(data['modes'])
         item = cls(**data)
-        if item.family not in ('hold', 'steps', 'release', 'curve', 'limit') or not 5 <= item.duration <= 10:
+        if item.family not in ('hold', 'steps', 'release', 'curve', 'limit', 'custom') or not 5 <= item.duration <= 10:
             raise ValueError("Família ou duração inválida")
-        if item.formula != 'brake-v1' or not 0 < item.tolerance <= .2 or not 1 <= item.level <= 8:
+        valid_level = item.level == 0 if item.custom else 1 <= item.level <= 8
+        if item.formula != 'brake-v1' or not 0 < item.tolerance <= .2 or not valid_level:
             raise ValueError("Parâmetros do exercício inválidos")
+        if (item.family == 'custom') != item.custom:
+            raise ValueError("Tipo de exercício personalizado inválido")
+        if item.custom and (len(item.target) != 11 or any(
+                not math.isclose(point[0], item.duration * index / 10, abs_tol=1e-9)
+                for index, point in enumerate(item.target))):
+            raise ValueError("Curva personalizada precisa de onze pontos")
         for points in (item.target, item.steering, item.accelerator):
             if len(points) < 2 or points[0][0] != 0 or points[-1][0] < item.duration:
                 raise ValueError("Keyframes devem cobrir o exercício")

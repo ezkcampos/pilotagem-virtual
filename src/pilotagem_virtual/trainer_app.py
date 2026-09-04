@@ -32,6 +32,7 @@ from pilotagem_virtual.input.pygame_device import PygameInputBackend
 from pilotagem_virtual.ui.track_map import TrackMapWidget
 from pilotagem_virtual.ui.brake_chart import BrakeChart
 from pilotagem_virtual.ui.brake_calibration import BrakeCalibrationDialog
+from pilotagem_virtual.ui.curve_editor import CurveEditorDialog
 from pilotagem_virtual.domain.exercise import load_catalog
 from pilotagem_virtual.domain.brake_scoring import score, SURFACES
 from pilotagem_virtual.domain.session import AttemptSession
@@ -341,9 +342,10 @@ class BrakeTrainerWindow(TrainerWindow):
         self.abs_reports={}
         self.pending_save=None
         self.store=store or TrainingStore(Path(os.getenv('LOCALAPPDATA',Path.home()))/'PilotagemVirtual'/'pilotagem-virtual.db')
+        self.custom_exercises=self.store.load_custom_exercises()
         self._legacy_scenario=(controller.session.scenario if controller else Scenario.load(resource_path('resources/scenarios/medium_right_v1.json')))
         super().__init__(controller)
-        self.setWindowTitle('Pilotagem Virtual — Fundamentos do freio 0.2')
+        self.setWindowTitle('Pilotagem Virtual — Treino de frenagem 0.3')
 
     def _scenario_for(self,exercise):
         return replace(self._legacy_scenario,name=exercise.name,description=exercise.objective,
@@ -355,7 +357,7 @@ class BrakeTrainerWindow(TrainerWindow):
         root.setContentsMargins(16,12,16,14)
         root.setSpacing(9)
         top=QHBoxLayout()
-        brand=QLabel('PILOTAGEM VIRTUAL  ·  FUNDAMENTOS DO FREIO')
+        brand=QLabel('PILOTAGEM VIRTUAL  ·  TREINO DE FRENAGEM')
         brand.setStyleSheet('font-size: 20px; font-weight: 800; color:#eee8dc')
         top.addWidget(brand)
         top.addStretch()
@@ -367,14 +369,15 @@ class BrakeTrainerWindow(TrainerWindow):
         top.addWidget(self.device_combo); top.addWidget(self.refresh_button); top.addWidget(self.calibrate_button); top.addWidget(self.restore_button)
         root.addLayout(top)
         selection=QHBoxLayout()
-        self.category_combo=QComboBox(); self.category_combo.addItems(['Fundamentos do freio','Trail braking em curva — legado'])
+        self.category_combo=QComboBox(); self.category_combo.addItems(['Fundamentos do freio','Curvas personalizadas','Trail braking em curva — legado'])
         self.category_combo.currentIndexChanged.connect(self._category_changed)
         self.exercise_combo=QComboBox()
-        for e in self.catalog: self.exercise_combo.addItem(f'{e.level}. {e.name}',e.id)
         self.exercise_combo.currentIndexChanged.connect(self._exercise_changed)
         self.mode_combo=QComboBox(); self.mode_combo.addItems(['Guiado','Memória','Avaliação']); self.mode_combo.currentTextChanged.connect(self._mode_changed)
         self.surface_combo=QComboBox(); self.surface_combo.addItems(SURFACES); self.surface_combo.currentTextChanged.connect(self._surface_changed)
-        for w in (self.category_combo,self.exercise_combo,self.mode_combo,self.surface_combo): selection.addWidget(w)
+        self.new_curve_button=QPushButton('Nova curva'); self.new_curve_button.clicked.connect(self._new_curve)
+        self.edit_curve_button=QPushButton('Editar curva'); self.edit_curve_button.clicked.connect(self._edit_curve)
+        for w in (self.category_combo,self.exercise_combo,self.mode_combo,self.surface_combo,self.new_curve_button,self.edit_curve_button): selection.addWidget(w)
         root.addLayout(selection)
         body=QHBoxLayout(); body.setSpacing(12)
         self.visuals=QStackedWidget()
@@ -403,6 +406,8 @@ class BrakeTrainerWindow(TrainerWindow):
         side_layout.addLayout(actions); body.addWidget(side,1); root.addLayout(body,1)
         self.setCentralWidget(central)
         self.setStyleSheet("QMainWindow,QWidget{background:#101716;color:#eee8dc} QFrame{background:#18201f;border:1px solid #34403e;border-radius:8px} QPushButton{background:#08a6c7;color:#101716;border:0;border-radius:5px;padding:8px;font-weight:700} QPushButton:disabled{background:#394240;color:#717c78} QComboBox{background:#18201f;border:1px solid #717c78;border-radius:4px;padding:7px} QProgressBar{background:#2a3331;border:0;border-radius:5px} QProgressBar::chunk{background:#08a6c7;border-radius:5px} QScrollArea{border:0}")
+        self._populate_exercises(self.catalog,self.exercise.id)
+        self._set_curve_actions(False)
         self._apply_exercise()
 
     def _set_session(self,scenario):
@@ -412,31 +417,81 @@ class BrakeTrainerWindow(TrainerWindow):
 
     def _category_changed(self,index):
         if self.session.active: return
-        legacy=index==1
+        legacy=index==2
+        custom=index==1
         self.exercise_combo.setEnabled(not legacy); self.mode_combo.setEnabled(not legacy); self.surface_combo.setEnabled(not legacy and self.exercise.level==8)
+        self._set_curve_actions(custom)
         if legacy:
             self._set_session(self._legacy_scenario); self.visuals.setCurrentIndex(2)
             self.scenario_title.setText(self._legacy_scenario.name); self.difficulty.setText('Exercício original · 8 segundos'); self.description.setText(self._legacy_scenario.description)
+        elif custom:
+            self.custom_exercises=self.store.load_custom_exercises()
+            self._populate_exercises(self.custom_exercises)
+            if not self.custom_exercises:
+                self.chart.exercise=None; self.visuals.setCurrentIndex(0); self._clear_charts()
+                self.scenario_title.setText('Curvas personalizadas')
+                self.difficulty.setText('Nenhuma curva salva')
+                self.description.setText('Crie uma curva com onze pontos, um a cada 10% do tempo, para começar o treino.')
+                self.start_button.setEnabled(False)
         else:
-            self._apply_exercise()
+            self._populate_exercises(self.catalog,self.exercise.id if not self.exercise.custom else None)
         self.result_label.clear(); self.phase_label.setText('PRONTO'); self.next_button.setEnabled(False)
 
     def _exercise_changed(self,index):
         if index < 0 or self.session.active: return
-        self.exercise=self.catalog[index]
+        exercise_id=self.exercise_combo.itemData(index)
+        exercises=self.custom_exercises if self.category_combo.currentIndex()==1 else self.catalog
+        exercise=next((item for item in exercises if item.id==exercise_id),None)
+        if exercise is None: return
+        self.exercise=exercise
         self._apply_exercise()
+
+    def _populate_exercises(self,exercises,selected_id=None):
+        self.exercise_combo.blockSignals(True); self.exercise_combo.clear()
+        for exercise in exercises:
+            label=exercise.name if exercise.custom else f'{exercise.level}. {exercise.name}'
+            self.exercise_combo.addItem(label,exercise.id)
+        if exercises:
+            index=next((i for i,item in enumerate(exercises) if item.id==selected_id),0)
+            self.exercise_combo.setCurrentIndex(index); self.exercise=exercises[index]
+        self.exercise_combo.blockSignals(False)
+        if exercises: self._apply_exercise()
+
+    def _set_curve_actions(self,visible):
+        self.new_curve_button.setVisible(visible)
+        self.new_curve_button.setEnabled(visible)
+        self.edit_curve_button.setVisible(visible)
+        self.edit_curve_button.setEnabled(visible and bool(self.custom_exercises))
+
+    def _new_curve(self):
+        dialog=CurveEditorDialog(parent=self)
+        if dialog.exec() and dialog.result_exercise:
+            self.store.save_custom_exercise(dialog.result_exercise)
+            self.custom_exercises=self.store.load_custom_exercises()
+            self._populate_exercises(self.custom_exercises,dialog.result_exercise.id)
+            self.edit_curve_button.setEnabled(True)
+
+    def _edit_curve(self):
+        if self.category_combo.currentIndex()!=1 or not self.custom_exercises: return
+        dialog=CurveEditorDialog(self.exercise,self)
+        if dialog.exec() and dialog.result_exercise:
+            self.store.save_custom_exercise(dialog.result_exercise)
+            self.custom_exercises=self.store.load_custom_exercises()
+            self._populate_exercises(self.custom_exercises,dialog.result_exercise.id)
 
     def _apply_exercise(self):
         scenario=self._scenario_for(self.exercise)
         self._set_session(scenario)
         self.chart.exercise=self.exercise; self.curve_chart.exercise=self.exercise
         self.chart.override_target=SURFACES[self.surface] if self.exercise.level==8 else None
-        self.visuals.setCurrentIndex(1 if self.exercise.level==7 else 0)
+        self.visuals.setCurrentIndex(1 if not self.exercise.custom and self.exercise.level==7 else 0)
         self.scenario_title.setText(self.exercise.name)
-        self.difficulty.setText(f'Nível {self.exercise.level} · {self.exercise.duration:.0f} segundos · tolerância ±{self.exercise.tolerance*100:.0f} pp')
+        prefix='Personalizado' if self.exercise.custom else f'Nível {self.exercise.level}'
+        self.difficulty.setText(f'{prefix} · {self.exercise.duration:g} segundos · tolerância ±{self.exercise.tolerance*100:.0f} pp')
         self.description.setText(self.exercise.objective)
-        self.surface_combo.setVisible(self.exercise.level==8); self.surface_combo.setEnabled(self.exercise.level==8)
-        self.abs_enabled=self.exercise.level==8
+        limit=not self.exercise.custom and self.exercise.level==8
+        self.surface_combo.setVisible(limit); self.surface_combo.setEnabled(limit)
+        self.abs_enabled=limit
         self.abs_reports={}; self.comparison_id=None
         self._clear_charts(); self.result_label.clear(); self.next_button.setEnabled(False)
 
@@ -478,12 +533,14 @@ class BrakeTrainerWindow(TrainerWindow):
             self.device_status.setText('G29 pronto · perfil observado restaurado')
 
     def _start_or_repeat(self):
+        if self.category_combo.currentIndex()==1 and not self.custom_exercises:
+            return
         if self.pending_save:
             try: self.store.save_attempt(self.pending_save); self.pending_save=None
             except (OSError,ValueError) as error:
                 self.result_label.setText(f'Falha ao salvar a tentativa anterior: {error}. Tente novamente antes de iniciar outra.')
                 return
-        if self.category_combo.currentIndex()==0:
+        if self.category_combo.currentIndex()!=2:
             if self.exercise.level==8 and {'com_abs','sem_abs'} <= self.abs_reports.keys():
                 self.abs_reports={}; self.comparison_id=None
             if self.exercise.level==8 and self.comparison_id is None: self.comparison_id=uuid.uuid4().hex
@@ -491,27 +548,30 @@ class BrakeTrainerWindow(TrainerWindow):
         super()._start_or_repeat()
         if not self.session.active: return
         self.next_button.setEnabled(False)
-        for widget in (self.category_combo,self.exercise_combo,self.mode_combo,self.surface_combo,self.calibrate_button,self.restore_button):
+        for widget in (self.category_combo,self.exercise_combo,self.mode_combo,self.surface_combo,self.new_curve_button,self.edit_curve_button,self.calibrate_button,self.restore_button):
             widget.setEnabled(False)
-        guided=self.category_combo.currentIndex()==0 and self.mode=='Guiado'
+        guided=self.category_combo.currentIndex()!=2 and self.mode=='Guiado'
         for chart in (self.chart,self.curve_chart):
             chart.samples=(); chart.reveal=guided; chart.result=False; chart.recording=True; chart.simulation=None; chart.update()
         self._apply_assistance()
 
     def _apply_assistance(self):
         active=self.session.active
-        evaluation=active and self.category_combo.currentIndex()==0 and self.mode=='Avaliação'
-        memory=active and self.category_combo.currentIndex()==0 and self.mode=='Memória'
+        training=self.category_combo.currentIndex()!=2
+        evaluation=active and training and self.mode=='Avaliação'
+        memory=active and training and self.mode=='Memória'
         self.brake_meter.setVisible(not evaluation)
         self.steering_meter.setVisible(not evaluation and self.exercise.level==7)
         self.accelerator_meter.setVisible(not evaluation and self.exercise.level==7)
         if memory: self.description.setText('Execute o objetivo de memória. A comparação será revelada no resultado.')
         elif evaluation: self.description.setText('Avaliação em andamento. Entrada e curva serão reveladas no resultado.')
-        elif self.category_combo.currentIndex()==0: self.description.setText(self.exercise.objective)
+        elif training: self.description.setText(self.exercise.objective)
 
     def _tick(self):
         super()._tick()
-        if self.category_combo.currentIndex()==1: return
+        if self.category_combo.currentIndex()==2: return
+        if self.category_combo.currentIndex()==1 and not self.custom_exercises:
+            self.start_button.setEnabled(False); return
         samples=self.session.samples
         for chart in (self.chart,self.curve_chart):
             chart.samples=samples; chart.progress=self.session.progress
@@ -520,7 +580,7 @@ class BrakeTrainerWindow(TrainerWindow):
 
     def _show_completion(self):
         if self._completion_announced: return
-        if self.category_combo.currentIndex()==1:
+        if self.category_combo.currentIndex()==2:
             super()._show_completion()
             for widget in (self.category_combo,self.exercise_combo,self.mode_combo,self.calibrate_button,self.restore_button): widget.setEnabled(True)
             self.surface_combo.setEnabled(False)
@@ -555,18 +615,20 @@ class BrakeTrainerWindow(TrainerWindow):
         except (OSError,ValueError) as error:
             self.pending_save=payload; self.result_label.setText(message+f'\nFalha ao salvar: {error}. A tentativa continua em memória; tente novamente.')
         self.start_button.setEnabled(self.controller.available); self.cancel_button.setEnabled(False)
-        self.device_combo.setEnabled(True); self.refresh_button.setEnabled(True); self.next_button.setEnabled(self.exercise.level<8 and report['valid'])
+        self.device_combo.setEnabled(True); self.refresh_button.setEnabled(True); self.next_button.setEnabled(not self.exercise.custom and self.exercise.level<8 and report['valid'])
         for widget in (self.category_combo,self.exercise_combo,self.mode_combo,self.calibrate_button,self.restore_button): widget.setEnabled(True)
+        self._set_curve_actions(self.category_combo.currentIndex()==1)
         self.surface_combo.setEnabled(self.exercise.level==8)
 
     def _show_cancelled(self):
         super()._show_cancelled(); self._apply_assistance(); self.brake_meter.show()
         self._clear_charts()
         for widget in (self.category_combo,self.exercise_combo,self.mode_combo,self.calibrate_button,self.restore_button): widget.setEnabled(True)
+        self._set_curve_actions(self.category_combo.currentIndex()==1)
         self.surface_combo.setEnabled(self.exercise.level==8)
 
     def _next(self):
-        if self.exercise.level<8:
+        if not self.exercise.custom and self.exercise.level<8:
             self.exercise_combo.setCurrentIndex(self.exercise.level)
 
     def _inspection(self,text): self.result_label.setText(self.result_label.text()+'\n'+text)

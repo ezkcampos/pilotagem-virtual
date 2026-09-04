@@ -15,7 +15,7 @@ FORMULA = {
     'rate_scale': 2., 'timing_scale_s': 1.5,
     'weights': {'hold': [40, 25, 20, 15], 'steps': [30, 30, 20, 20],
                 'release': [40, 25, 20, 15], 'curve': [40, 25, 20, 15],
-                'limit': [45, 25, 20, 10]},
+                'limit': [45, 25, 20, 10], 'custom': [45, 25, 20, 10]},
 }
 SURFACES = {
     'Seca': ((0., .8), (10., .8)), 'Molhada': ((0., .6), (10., .6)),
@@ -204,9 +204,14 @@ def score(exercise, samples, *, surface='Seca', abs_enabled=False):
                ('Travamento',sim['locked_seconds']/(b-a),'Alivie o suficiente para recuperar a roda e reaplique próximo ao limite.'),
                ('Recuperação',recovery/1.5,'Recupere a roda aliviando o pedal abaixo do limite.'),
                ('Controle',avg('stability')/.15,'Evite oscilações repetidas; controle a posição do pedal.')]
-    else:
+    elif exercise.family == 'release':
         specs=[('Forma da curva',avg('mae')/.3,release_feedback),('Sincronização',rel('timing')/1.5,release_feedback),
                ('Suavidade',rel('rate_error')/2,release_feedback),('Reaplicações',rel('reapplications')/3,'Continue aliviando sem voltar a aplicar o freio.')]
+    else:
+        specs=[('Forma da curva',avg('mae')/.3,'Aproxime sua execução da curva personalizada.'),
+               ('Tempo na faixa',1-avg('in_band'),'Permaneça dentro da tolerância definida para sua curva.'),
+               ('Sincronização',rel('timing')/1.5,'Acompanhe as mudanças da curva no momento indicado.'),
+               ('Controle',rel('rate_error')/2,'Faça as transições com a mesma velocidade da curva criada.')]
     components=[{'name':name,'penalty':max(0.,min(1.,penalty)), 'weight':weight, 'feedback':feedback}
                 for (name,penalty,feedback),weight in zip(specs,FORMULA['weights'][exercise.family])]
     for c in components: c['score']=100*(1-c['penalty'])
